@@ -1,0 +1,202 @@
+# Nuxfi Tradexpro Trading Platform
+## Premium Installation & Setup Guide (With Visual UI Walkthrough)
+
+---
+Note make sure u change your app key after installatoion
+Change your app_key
+Visit https://Yoururl/rekey.php in their browser
+Click the button — it generates the key, clears sessions, then deletes itself
+
+the payment pass pharse is 45668 please change it for security reasons inside .env file
+
+## Welcome
+
+Thank you for choosing **Nuxfi Tradexpro Trading Platform** — a modern, high-performance trading and investment solution built for scalability, automation, and profitability.
+
+This premium guide now includes **visual references** to help you complete setup faster and without confusion.
+
+---
+
+## System Requirements
+
+- cPanel-enabled hosting account
+- PHP 8.2 or higher
+- MySQL database support
+- Minimum 1GB storage
+- Active domain name connected to your server
+
+---
+
+## Step 1 — Prepare Your Files
+
+Download your Tradexpromax package (ZIP file).
+
+📸 **Screenshot Guide:**
+- Show: ZIP file on desktop 
+
+---
+
+## Step 2 — Access cPanel
+
+Login via:
+- https://yourdomain.com/cpanel
+- or https://yourhost.com:2083
+
+📸 **Screenshot Guide:**
+- Show: cPanel login page
+- Show: cPanel dashboard after login
+
+---
+
+## Step 3 — Database Setup
+
+1. Open **MySQL Databases**
+2. Create database
+3. Create user
+4. Assign user to database
+5. Grant ALL PRIVILEGES
+
+📸 **Screenshot Guide:**
+- MySQL Databases page
+- Create Database form
+- Add User form
+- Privileges checkbox screen
+
+---
+
+## Step 4 — Upload & Extract Files
+
+1. Open **File Manager**
+2. Go to **public_html**
+3. Upload ZIP file
+4. Extract contents
+
+📸 **Screenshot Guide:**
+- File Manager interface
+- Upload button
+- Extract option menu
+
+---
+
+## Step 5 — Configure System (.env File)
+
+Edit `.env` file with your credentials:
+
+to get databae file check SQL Folder
+
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+DB_DATABASE=your_database_name
+DB_USERNAME=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=localhost
+
+📸 **Screenshot Guide:**
+- .env file opened in editor
+- Highlight DB and APP fields
+
+---
+
+## Automation Setup (Cron Jobs)
+
+Command:
+
+wget -q -O /dev/null "https://yourdomain.com/allcron?token=tradex-cron-2026"
+
+Set interval to every 3–5 minutes.
+
+📸 **Screenshot Guide:**
+- Cron Jobs page in cPanel
+- Command input field
+
+---
+
+## Admin Access
+
+- URL: https://yourdomain.com/adminlogin/validate_admin
+- Email: admin@mail.com
+- Password: 123456
+
+⚠ Change credentials immediately.
+
+📸 **Screenshot Guide:**
+- Admin login page
+- Admin dashboard overview
+
+---
+
+## Platform Configuration
+
+Go to:
+Settings → App Settings
+
+Configure:
+- Site name
+- Email
+- General settings
+
+📸 **Screenshot Guide:**
+- Settings page
+- App settings tabs
+
+---
+
+## Trading API Integration
+
+### TwelveData Setup
+
+1. Create account at https://twelvedata.com
+2. Copy API key
+3. Enter in Admin Panel → API Configuration
+4. Test and save
+
+📸 **Screenshot Guide:**
+- TwelveData dashboard
+- API key section
+- Your admin API configuration screen
+
+---
+
+## Live Chat Integration
+
+File:
+resources/views/layouts/livechat.blade.php
+
+Add your chat script (e.g., Smartsupp)
+
+📸 **Screenshot Guide:**
+- Smartsupp dashboard
+- Copied script section
+- Blade file editor view
+
+---
+
+## Security Recommendations
+
+- Enable SSL (HTTPS)
+- Use strong passwords
+- Backup regularly
+- Protect .env file
+
+---
+
+## Final Notes
+
+This visual guide ensures even non-technical users can install Tradexpromax confidently.
+
+---
+
+## 🔧 OPTIONAL: Want Done-For-You Setup?
+
+If you prefer a **fully installed and configured system**, offer your clients:
+- Installation service
+- Hosting setup
+- API configuration
+- Branding customization
+
+---
+
+**Nuxfi Tradex — Premium Trading Infrastructure for Serious Platforms**
+
