@@ -188,7 +188,6 @@
                 <label class="block text-sm font-medium text-content-secondary mb-2">Account Type</label>
                 <div class="flex flex-wrap gap-2">
                     @foreach([
-                        'Binary Option Trading' => 'Binary Options',
                         'Forex Trading' => 'Forex',
                         'Stock Trading' => 'Stocks',
                         'CryptoCurrency Investment' => 'Crypto',
