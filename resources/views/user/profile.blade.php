@@ -22,7 +22,7 @@
         {{-- Avatar --}}
         <div class="relative shrink-0">
             @if (Auth::user()->profile_photo_path)
-                <img src="{{ asset('storage/app/public/photos/' . Auth::user()->profile_photo_path) }}"
+                <img src="{{ asset('storage/app/public/' . Auth::user()->profile_photo_path) }}"
                      alt="{{ Auth::user()->name }}"
                      class="w-20 h-20 rounded-full border-2 border-primary object-cover bg-surface-overlay">
             @else
@@ -624,7 +624,7 @@
 
                     <div class="flex justify-center">
                         @if (Auth::user()->profile_photo_path)
-                            <img src="{{ asset('storage/app/public/photos/' . Auth::user()->profile_photo_path) }}"
+                            <img src="{{ asset('storage/app/public/' . Auth::user()->profile_photo_path) }}"
                                  alt="{{ Auth::user()->name }}"
                                  class="w-32 h-32 rounded-full border-2 border-surface-border-light object-cover bg-surface-overlay">
                         @else

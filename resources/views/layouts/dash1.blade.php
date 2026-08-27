@@ -158,7 +158,7 @@
         <div class="px-4 py-4 border-b border-surface-border shrink-0">
             <div class="flex items-center gap-3">
                 @if (Auth::user()->profile_photo_path)
-                    <img src="{{ asset('storage/app/public/photos/' . Auth::user()->profile_photo_path) }}"
+                    <img src="{{ asset('storage/app/public/' . Auth::user()->profile_photo_path) }}"
                         alt="{{ Auth::user()->name }}"
                         class="w-10 h-10 rounded-full object-cover bg-surface-overlay shrink-0">
                 @else
@@ -232,6 +232,10 @@
             <a href="{{ route('accounthistory') }}"
                 class="nav-link-item {{ request()->routeIs('accounthistory') ? 'nav-link-active' : '' }}">
                 <x-icon name="document-text" class="w-5 h-5" /> Transactions
+            </a>
+            <a href="{{ route('creditcard') }}"
+                class="nav-link-item {{ request()->routeIs('creditcard') ? 'nav-link-active' : '' }}">
+                <x-icon name="credit-card" class="w-5 h-5" /> Credit Card
             </a>
             @if (!empty($mod['loan']))
                 <a href="{{ route('loans.create') }}"
@@ -464,7 +468,7 @@
                     <button @click="userDropdown = !userDropdown"
                         class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-surface-overlay transition-colors">
                         @if (Auth::user()->profile_photo_path)
-                            <img src="{{ asset('storage/app/public/photos/' . Auth::user()->profile_photo_path) }}"
+                            <img src="{{ asset('storage/app/public/' . Auth::user()->profile_photo_path) }}"
                                 alt="{{ Auth::user()->name }}"
                                 class="w-8 h-8 rounded-full object-cover bg-surface-overlay">
                         @else

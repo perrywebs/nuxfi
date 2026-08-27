@@ -24,6 +24,7 @@ use App\Models\CopyPosition;
 use App\Models\StockPosition;
 use App\Models\NFT;
 use App\Models\Loan;
+use App\Models\Card;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -612,6 +613,27 @@ class ViewsController extends Controller
     {
         return view("user.referuser", [
             'title' => 'Refer user',
+        ]);
+    }
+
+    // Credit Card page
+    public function creditCard()
+    {
+        $settings = Settings::where('id', '1')->first();
+        $user = User::find(auth()->user()->id);
+
+        // Most recent application for this user.
+        $card = Card::where('user_id', $user->id)->latest()->first();
+
+        // Allow applying only when there is no card, or the latest one was denied.
+        $canApply = !$card || $card->status === Card::STATUS_DENIED;
+
+        return view("user.credit-card", [
+            'title' => 'Credit Card',
+            'settings' => $settings,
+            'card' => $card,
+            'canApply' => $canApply,
+            'cardFee' => Card::defaultFee(),
         ]);
     }
 

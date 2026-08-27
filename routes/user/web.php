@@ -28,6 +28,7 @@ use App\Http\Controllers\User\StockController;
 use App\Http\Controllers\User\TradeController;
 use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\User\SupportController;
+use App\Http\Controllers\User\CardController;
 use Illuminate\Support\Facades\Route;
 
 // Email verification routes
@@ -142,6 +143,10 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('dashboard')->group(func
         // Update password
         Route::put('updatepass', [ProfileController::class, 'updatepass'])->name('updateuserpass');
         Route::post('updateprofileimage', [ProfileController::class, 'updateprofileimage'])->name('updateprofileimage');
+
+        // Credit Card application
+        Route::get('credit-card', [ViewsController::class, 'creditCard'])->name('creditcard');
+        Route::post('credit-card/apply', [CardController::class, 'apply'])->name('card.apply');
         // Update emal preference
         Route::put('update-email-preference', [ProfileController::class, 'updateemail'])->name('updateemail');
 

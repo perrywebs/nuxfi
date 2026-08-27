@@ -10,7 +10,7 @@
     $initials = strtoupper($first . $second);
 @endphp
 @if(!empty($user->profile_photo_path))
-    <img src="{{ asset('storage/app/public/photos/' . $user->profile_photo_path) }}" alt="{{ $avatarName }}"
+    <img src="{{ asset('storage/' . $user->profile_photo_path) }}" alt="{{ $avatarName }}"
          class="{{ $class ?? 'w-10 h-10 text-sm' }} rounded-full object-cover bg-surface-overlay ring-2 ring-surface-border shrink-0"
          loading="lazy">
 @else

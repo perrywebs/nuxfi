@@ -15,14 +15,23 @@ class ProfileController extends Controller
     //Updating Profile Route
     public function updateprofile(Request $request)
     {
-        $updateData = [
-            'name' => $request->name,
-            'dob' => $request->dob,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'state' => $request->state,
-            'zipcode' =>  $request->zipcode,
-        ];
+        $request->validate([
+            'name' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'zipcode' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:500',
+            'currency_code' => 'nullable|string|max:10',
+        ]);
+
+        // Only update fields that were actually submitted. This prevents
+        // accidentally wiping columns (e.g. dob) that are not part of the form.
+        $updateData = [];
+        foreach (['name', 'country', 'state', 'zipcode', 'address'] as $field) {
+            if ($request->has($field)) {
+                $updateData[$field] = $request->input($field);
+            }
+        }
 
         // Update currency if provided and valid
         if ($request->filled('currency_code')) {
@@ -36,11 +45,12 @@ class ProfileController extends Controller
             }
         }
 
-        User::where('id', Auth::user()->id)->update($updateData);
+        if (!empty($updateData)) {
+            User::where('id', Auth::user()->id)->update($updateData);
+        }
 
-            return redirect()->back()
-            ->with('success', 'Action Sucessful! Profile Information Updated Sucessfully!.');
-        
+        return redirect()->back()
+            ->with('success', 'Profile Information Updated Successfully.');
     }
 
     //update account and contact info
@@ -95,50 +105,52 @@ class ProfileController extends Controller
 
 
      //Updating Profile Route
-     public function updateprofileimage(Request $request){
-        
-        
-        $this->validate($request, [
-            'profileimage' => 'mimes:jpg,jpeg,png|max:4000|image',
-        ]);
-        
-        
-        
-        $settings = Settings::where('id', '=', '1')->first();
-        $strtxt = $this->RandomStringGenerator(6);
-        
-        if($request->hasfile('profileimage')){
+     public function updateprofileimage(Request $request)
+     {
+         $this->validate($request, [
+             'profileimage' => 'required|image|mimes:jpg,jpeg,png|max:4096',
+         ], [
+             'profileimage.required' => 'Please choose an image to upload.',
+             'profileimage.image' => 'The file must be a valid image.',
+             'profileimage.mimes' => 'Only JPG and PNG images are allowed.',
+             'profileimage.max' => 'The image must not be larger than 4MB.',
+         ]);
 
-            $document1 = $request->file('profileimage');
-            // Use content-based extension detection, not client-supplied filename
-            $ext = $document1->extension();
-            $whitelist = array('jpeg','jpg','png');
-  
-            if (in_array($ext, $whitelist)) {
+         $user = User::find(Auth::user()->id);
 
-                  // Use a random name to prevent filename-based attacks
-                  $cardname = $strtxt . time() . '.' . $ext;
-                  // save to storage/app/uploads as the new $filename
-                  $path = $document1->storeAs('public/photos', $cardname);
+         $document1 = $request->file('profileimage');
+         // Use content-based extension detection, not client-supplied filename
+         $ext = $document1->extension();
+         $whitelist = array('jpeg', 'jpg', 'png');
 
-            } else {
-              return redirect()->back()
-              ->with('message', 'Unaccepted ID Card Image Uploaded');
-        User::where('id',Auth::user()->id)
-        ->update([
-            'profile_photo_path' => $cardname,
-           
-        ]);
-      }
-        return redirect()->back()
-            ->with('success', 'Action Sucessful! Profile Photo Updated Sucessfully!.');
-        
-        
-        
-        
-    
-    }
-    }
+         if (!in_array($ext, $whitelist)) {
+             return redirect()->back()
+                 ->with('message', 'Unaccepted image type uploaded.');
+         }
+
+         $strtxt = $this->RandomStringGenerator(6);
+         // Use a random name to prevent filename-based attacks
+         $cardname = $strtxt . time() . '.' . $ext;
+
+         // Remove the user's previous photo (if any) so we don't leave orphans
+         if ($user->profile_photo_path) {
+             $oldPath = storage_path('app/public/' . $user->profile_photo_path);
+             if (file_exists($oldPath)) {
+                 @unlink($oldPath);
+             }
+         }
+
+         // Store to the public disk: storage/app/public/photos/<name>
+         $document1->storeAs('public/photos', $cardname);
+
+         // Save the path relative to the public disk (e.g. photos/<name>)
+         User::where('id', $user->id)->update([
+             'profile_photo_path' => 'photos/' . $cardname,
+         ]);
+
+         return redirect()->back()
+             ->with('success', 'Profile Photo Updated Successfully.');
+     }
 
 // for front end content management
 private function RandomStringGenerator($n) 

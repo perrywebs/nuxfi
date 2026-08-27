@@ -176,6 +176,11 @@ public function copiedExperts()
         return $this->hasMany(Wallets::class, 'user');
     }
 
+    public function cards()
+    {
+        return $this->hasMany(Card::class);
+    }
+
     public function canConnectMoreWallets()
     {
         return $this->wallets()->count() < 10;

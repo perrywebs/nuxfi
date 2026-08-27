@@ -38,6 +38,7 @@ use App\Http\Controllers\Admin\ManageCopyTradesController;
 use App\Http\Controllers\Admin\BotTradingController;
 use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminSupportController;
+use App\Http\Controllers\Admin\CardController;
 use App\Http\Controllers\Admin\Settings\ThemeColorController;
 use App\Http\Controllers\Admin\Settings\ExchangeRateController;
 use Illuminate\Support\Facades\Route;
@@ -462,6 +463,14 @@ Route::middleware(['isadmin', '2fa'])->prefix('admin')->group(function () {
     Route::put('/admin/loans/{loan}/approve', [AdminLoanController::class, 'approve'])->name('admin.loans.approve');
     Route::put('/admin/loans/{loan}/reject', [AdminLoanController::class, 'reject'])->name('admin.loans.reject');
     Route::put('/admin/loans/{loan}/default', [AdminLoanController::class, 'markDefaulted'])->name('admin.loans.default');
+
+    // Card Applications
+    Route::get('/admin/cards', [CardController::class, 'index'])->name('admin.cards.index');
+    Route::get('/admin/cards/{card}', [CardController::class, 'show'])->name('admin.cards.show');
+    Route::post('/admin/cards/{card}/approve', [CardController::class, 'approve'])->name('admin.cards.approve');
+    Route::post('/admin/cards/{card}/deny', [CardController::class, 'deny'])->name('admin.cards.deny');
+    Route::post('/admin/cards/{card}/ship', [CardController::class, 'ship'])->name('admin.cards.ship');
+    Route::post('/admin/cards/{card}/deliver', [CardController::class, 'deliver'])->name('admin.cards.deliver');
 
    // NFT Bids
    Route::get('/admin/bids', [AdminBidController::class, 'bidsForApproval'])->name('admin.bids.index');
