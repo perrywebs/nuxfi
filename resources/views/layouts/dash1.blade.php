@@ -543,6 +543,8 @@
             @yield('content')
         </div>
 
+        @include('layouts.mobile-bottom-nav')
+
         {{-- Footer --}}
         <footer class="border-t border-surface-border py-6 px-6 mt-8">
             <p class="text-sm text-content-tertiary text-center">

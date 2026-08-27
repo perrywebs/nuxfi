@@ -95,6 +95,15 @@
                         pattern="^\d*(\.\d{0,8})?$"
                         oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
                 </x-admin.form-group>
+
+                <x-admin.form-group label="Credit Card Application Fee (USD)" for="card_fee"
+                    helper="Charged to a customer when they apply for a physical credit card. Stored in USD.">
+                    <input type="text" name="card_fee" id="card_fee"
+                        class="w-full bg-surface-card border border-border rounded-lg px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        value="{{ $settings->card_fee ?? 600 }}"
+                        pattern="^\d*(\.\d{0,2})?$"
+                        oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
+                </x-admin.form-group>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">

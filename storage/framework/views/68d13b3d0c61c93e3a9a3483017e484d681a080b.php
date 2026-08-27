@@ -7,7 +7,7 @@
     $initials = strtoupper($first . $second);
 ?>
 <?php if(!empty($user->profile_photo_path)): ?>
-    <img src="<?php echo e(asset('storage/app/public/photos/' . $user->profile_photo_path)); ?>" alt="<?php echo e($avatarName); ?>"
+    <img src="<?php echo e(asset('storage/app/public/' . $user->profile_photo_path)); ?>" alt="<?php echo e($avatarName); ?>"
          class="<?php echo e($class ?? 'w-10 h-10 text-sm'); ?> rounded-full object-cover bg-surface-overlay ring-2 ring-surface-border shrink-0"
          loading="lazy">
 <?php else: ?>

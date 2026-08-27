@@ -156,6 +156,14 @@ class AppSettingsController extends Controller
 
             ]);
 
+        // Credit Card application fee (global, USD). Only update when provided
+        // and numeric so a missing field can never blank the value.
+        if ($request->filled('card_fee') && is_numeric($request->card_fee)) {
+            Settings::where('id', '1')->update([
+                'card_fee' => max(0, (float) $request->card_fee),
+            ]);
+        }
+
         $moreset = SettingsCont::find(1);
         $moreset->purchase_code = $request->purchase_code;
         $moreset->save();

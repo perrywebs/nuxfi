@@ -189,6 +189,24 @@
 <?php $component = $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4; ?>
 <?php unset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4); ?>
 <?php endif; ?>
+
+                <?php if (isset($component)) { $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4 = $component; } ?>
+<?php $component = $__env->getContainer()->make(Illuminate\View\AnonymousComponent::class, ['view' => 'components.admin.form-group','data' => ['label' => 'Credit Card Application Fee (USD)','for' => 'card_fee','helper' => 'Charged to a customer when they apply for a physical credit card. Stored in USD.']]); ?>
+<?php $component->withName('admin.form-group'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php $component->withAttributes(['label' => 'Credit Card Application Fee (USD)','for' => 'card_fee','helper' => 'Charged to a customer when they apply for a physical credit card. Stored in USD.']); ?>
+                    <input type="text" name="card_fee" id="card_fee"
+                        class="w-full bg-surface-card border border-border rounded-lg px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                        value="<?php echo e($settings->card_fee ?? 600); ?>"
+                        pattern="^\d*(\.\d{0,2})?$"
+                        oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
+                 <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4)): ?>
+<?php $component = $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4; ?>
+<?php unset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4); ?>
+<?php endif; ?>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">

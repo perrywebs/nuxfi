@@ -985,6 +985,8 @@
             <?php echo $__env->yieldContent('content'); ?>
         </div>
 
+        <?php echo $__env->make('layouts.mobile-bottom-nav', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
+
         
         <footer class="border-t border-surface-border py-6 px-6 mt-8">
             <p class="text-sm text-content-tertiary text-center">
