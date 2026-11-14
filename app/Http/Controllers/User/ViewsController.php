@@ -368,6 +368,14 @@ class ViewsController extends Controller
             ));
     }
 
+    // Compound interest calculator route
+    public function compoundInterest()
+    {
+        return view('user.compound-interest', [
+            'title' => 'Compound Interest',
+        ]);
+    }
+
 
 
 

@@ -28,7 +28,7 @@
     {{-- Google Fonts: Inter --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"
         media="print" onload="this.media='all'">
 
     {{-- Tailwind CSS (Play CDN) — TODO: replace with pre-built CSS for production --}}
@@ -235,7 +235,7 @@
             </a>
             <a href="{{ route('creditcard') }}"
                 class="nav-link-item {{ request()->routeIs('creditcard') ? 'nav-link-active' : '' }}">
-                <x-icon name="credit-card" class="w-5 h-5" /> Credit Card
+                <x-icon name="credit-card" class="w-5 h-5" /> Wireless Card
             </a>
             @if (!empty($mod['loan']))
                 <a href="{{ route('loans.create') }}"
@@ -252,6 +252,10 @@
                     <x-icon name="banknotes" class="w-5 h-5" /> Investment Plans
                 </a>
             @endif
+            <a href="{{ route('compound-interest') }}"
+                class="nav-link-item {{ request()->routeIs('compound-interest') ? 'nav-link-active' : '' }}">
+                <x-icon name="calculator" class="w-5 h-5" /> Compound Interest
+            </a>
             @if (!empty($mod['pre_ipo']))
                 <a href="{{ route('user.pre-ipo.index') }}"
                     class="nav-link-item {{ request()->routeIs('user.pre-ipo.*') ? 'nav-link-active' : '' }}">

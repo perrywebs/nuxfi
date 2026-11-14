@@ -28,7 +28,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"
         media="print" onload="this.media='all'">
 
     
@@ -380,7 +380,7 @@
 <?php if (isset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4)): ?>
 <?php $component = $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4; ?>
 <?php unset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4); ?>
-<?php endif; ?> Credit Card
+<?php endif; ?> Wireless Card
             </a>
             <?php if(!empty($mod['loan'])): ?>
                 <a href="<?php echo e(route('loans.create')); ?>"
@@ -419,6 +419,21 @@
 <?php endif; ?> Investment Plans
                 </a>
             <?php endif; ?>
+            <a href="<?php echo e(route('compound-interest')); ?>"
+                class="nav-link-item <?php echo e(request()->routeIs('compound-interest') ? 'nav-link-active' : ''); ?>">
+                <?php if (isset($component)) { $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4 = $component; } ?>
+<?php $component = $__env->getContainer()->make(Illuminate\View\AnonymousComponent::class, ['view' => 'components.icon','data' => ['name' => 'calculator','class' => 'w-5 h-5']]); ?>
+<?php $component->withName('icon'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php $component->withAttributes(['name' => 'calculator','class' => 'w-5 h-5']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4)): ?>
+<?php $component = $__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4; ?>
+<?php unset($__componentOriginalc254754b9d5db91d5165876f9d051922ca0066f4); ?>
+<?php endif; ?> Compound Interest
+            </a>
             <?php if(!empty($mod['pre_ipo'])): ?>
                 <a href="<?php echo e(route('user.pre-ipo.index')); ?>"
                     class="nav-link-item <?php echo e(request()->routeIs('user.pre-ipo.*') ? 'nav-link-active' : ''); ?>">

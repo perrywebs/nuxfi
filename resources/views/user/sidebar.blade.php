@@ -118,6 +118,11 @@
                 <span class="pt-2 btn-inner--icon d-block">My Plans</span>
             </a>
         @endif
+        <a href="{{ route('compound-interest') }}"
+            class="text-sm btn btn-square {{ request()->routeIs('compound-interest') ? 'active' : '' }}">
+            <span class="btn-inner--icon d-block"><i class="fas fa-calculator fa-2x"></i></span>
+            <span class="pt-2 btn-inner--icon d-block">Compound Interest</span>
+        </a>
         @if ($mod['membership'])
             <a href="{{ route('user.courses') }}"
                 class="text-sm btn btn-square {{ request()->routeIs('user.mycourses') ? 'active' : '' }} {{ request()->routeIs('user.courses') ? 'active' : '' }} {{ request()->routeIs('user.course.details') ? 'active' : '' }}">

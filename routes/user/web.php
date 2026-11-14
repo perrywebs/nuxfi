@@ -134,6 +134,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('dashboard')->group(func
         Route::get('purchase', [ViewsController::class, 'purchase'])->name('purchase');
         Route::get('chart',[ViewsController::class, 'chart'])->name('chart');
         Route::get('calendar',[ViewsController::class, 'calendar'])->name('calendar');
+        Route::get('compound-interest', [ViewsController::class, 'compoundInterest'])->name('compound-interest');
 
 
         // Update withdrawal info
