@@ -21,6 +21,12 @@ class User extends Authenticatable implements MustVerifyEmail
     use TwoFactorAuthenticatable;
 
     /**
+     * The primary platform account that must never be deactivated or deleted.
+     * The same id is already excluded from the admin user listings.
+     */
+    public const PROTECTED_ID = 192;
+
+    /**
      * Send the email verification notification.
      *
      * @return void
@@ -85,6 +91,49 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
 
+    /**
+     * Whether this account is currently allowed to use the application.
+     *
+     * Historically the application used "blocked" for disabled accounts while
+     * newer records use "inactive". Both values are treated as inactive so old
+     * and new data behave consistently.
+     */
+    public function isActive(): bool
+    {
+        return strtolower((string) $this->status) === 'active';
+    }
+
+    public function isInactive(): bool
+    {
+        return !$this->isActive();
+    }
+
+    /**
+     * Whether this account is protected from destructive admin actions.
+     */
+    public function isProtectedAccount(): bool
+    {
+        return (int) $this->id === self::PROTECTED_ID;
+    }
+
+    public function getAccountStatusLabelAttribute(): string
+    {
+        return $this->isActive() ? 'Active' : 'Inactive';
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereRaw('LOWER(status) = ?', ['active']);
+    }
+
+    public function scopeInactive($query)
+    {
+        return $query->where(function ($query) {
+            $query->whereNull('status')
+                ->orWhereRaw('LOWER(status) <> ?', ['active']);
+        });
+    }
+
     public function dp()
     {
         return $this->hasMany(Deposit::class, 'user');
@@ -98,6 +147,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function signalSubscriptions()
     {
         return $this->hasMany(SignalSubscription::class);
+    }
+
+    public function signalPayments()
+    {
+        return $this->hasMany(SignalPayment::class);
     }
     public function copyTrades()
     {

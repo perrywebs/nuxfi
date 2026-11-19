@@ -17,11 +17,38 @@
         principal: 5000,
         rate: 27.6,
         months: 12,
+        unit: 'mo',
         contribution: 0,
         period: 'month',
         takePct: 0,
         feePct: 30
     };
+
+    // A month is the calculator's compounding period, so a week/day horizon is
+    // converted to its equivalent fraction of an average Gregorian month.
+    var DAYS_PER_MONTH = 30.436875;
+    var MAX_MONTHS = 600;
+    var MONTHS_PER_UNIT = {
+        mo: 1,
+        wk: 7 / DAYS_PER_MONTH,
+        day: 1 / DAYS_PER_MONTH
+    };
+    var UNIT_META = {
+        mo: { short: 'mo', prose: 'mo', singular: 'month', plural: 'months' },
+        wk: { short: 'wk', prose: 'wk', singular: 'week', plural: 'weeks' },
+        day: { short: 'day', prose: 'days', singular: 'day', plural: 'days' }
+    };
+
+    function normalizeUnit(value) {
+        return value === 'wk' || value === 'day' ? value : 'mo';
+    }
+
+    function formatDuration(value) {
+        if (!Number.isFinite(value)) {
+            return '\u2014';
+        }
+        return String(Math.round(value * 100) / 100);
+    }
 
     function finiteNumber(value, fallback) {
         var parsed = typeof value === 'number' ? value : parseFloat(value);
@@ -84,12 +111,26 @@
     function calculate(options) {
         options = options || {};
         var principal = Math.max(0, finiteNumber(options.principal, DEFAULTS.principal));
-        var rateInput = Math.max(0, finiteNumber(options.rate, DEFAULTS.rate));
-        var months = Math.max(0, Math.floor(finiteNumber(options.months, DEFAULTS.months)));
+        var rateInput = clamp(finiteNumber(options.rate, DEFAULTS.rate), 0, 1000);
+        // Always bound the loop here as well as in the UI so a pasted or
+        // programmatic value can never freeze the page.
+        var months = clamp(finiteNumber(options.months, DEFAULTS.months), 0, MAX_MONTHS);
         var contribution = Math.max(0, finiteNumber(options.contribution, DEFAULTS.contribution));
         var period = options.period === 'year' ? 'year' : 'month';
         var takePct = clamp(finiteNumber(options.takePct, DEFAULTS.takePct), 0, 100);
         var feePct = clamp(finiteNumber(options.feePct, DEFAULTS.feePct), 0, 100);
+
+        // Support fractional month horizons from the week/day unit selector while
+        // keeping whole-month projections byte-for-byte identical to before.
+        var fullMonths = Math.floor(months);
+        var remainder = months - fullMonths;
+        if (remainder < 0.001) {
+            remainder = 0;
+        } else if (remainder > 0.999) {
+            fullMonths += 1;
+            remainder = 0;
+        }
+        months = fullMonths + remainder;
 
         var monthlyRate = period === 'year'
             ? Math.pow(1 + rateInput / 100, 1 / 12) - 1
@@ -112,7 +153,7 @@
         var feeTotal = 0;
         var gainTotal = 0;
 
-        for (var month = 1; month <= months; month += 1) {
+        for (var month = 1; month <= fullMonths; month += 1) {
             var gain = balance * monthlyRate;
             var withdrawn = gain * (takePct / 100);
             var fee = withdrawn * (feePct / 100);
@@ -137,20 +178,57 @@
             });
         }
 
+        if (remainder > 0) {
+            var partialGain = balance * monthlyRate * remainder;
+            var partialWithdrawn = partialGain * (takePct / 100);
+            var partialFee = partialWithdrawn * (feePct / 100);
+            var partialPaidOut = partialWithdrawn - partialFee;
+
+            // A recurring contribution is made at the end of a full month, so a
+            // partial month grows the existing balance but adds no new deposit.
+            balance = balance + partialGain - partialWithdrawn;
+            cashTotal += partialPaidOut;
+            feeTotal += partialFee;
+            gainTotal += partialGain;
+
+            var partialPrincipal = principal + contribution * fullMonths;
+            rows.push({
+                m: fullMonths + 1,
+                label: 'M' + (fullMonths + 1) + '*',
+                balance: round2(balance),
+                principal: round2(partialPrincipal),
+                interest: round2(balance - partialPrincipal),
+                gain: round2(partialGain),
+                paidOut: round2(partialPaidOut),
+                fee: round2(partialFee),
+                cashTotal: round2(cashTotal),
+                partial: true
+            });
+        }
+
         var final = balance;
-        var principalTotal = principal + contribution * months;
+        var principalTotal = principal + contribution * fullMonths;
         var interestTotal = takePct > 0
             ? final + cashTotal - principalTotal
             : final - principalTotal;
         var growthPct = principalTotal > 0 ? (interestTotal / principalTotal) * 100 : 0;
         var multiple = principalTotal > 0 ? (final + cashTotal) / principalTotal : 0;
-        var simpleBalance = principal * (1 + monthlyRate * months) + contribution * months;
+        // Simple interest for a fair comparison: the starting principal earns a
+        // flat return for the whole horizon, while each contribution earns it
+        // only for the months it is actually invested.
+        var simpleBalance = principal * (1 + monthlyRate * months);
+        for (var simpleMonth = 1; simpleMonth <= fullMonths; simpleMonth += 1) {
+            simpleBalance += contribution * (1 + monthlyRate * (months - simpleMonth));
+        }
         var compoundAdds = final - simpleBalance;
         var annualized = (Math.pow(1 + monthlyRate, 12) - 1) * 100;
 
         var allIn = principal;
-        for (var allInMonth = 1; allInMonth <= months; allInMonth += 1) {
+        for (var allInMonth = 1; allInMonth <= fullMonths; allInMonth += 1) {
             allIn = allIn * (1 + monthlyRate) + contribution;
+        }
+        if (remainder > 0) {
+            allIn = allIn * (1 + monthlyRate * remainder);
         }
 
         return {
@@ -290,6 +368,7 @@
             principal: DEFAULTS.principal,
             rate: DEFAULTS.rate,
             months: DEFAULTS.months,
+            unit: DEFAULTS.unit,
             contribution: DEFAULTS.contribution,
             period: DEFAULTS.period,
             takePct: DEFAULTS.takePct,
@@ -300,6 +379,8 @@
             principal: byId('ci-principal'),
             rate: byId('ci-rate'),
             months: byId('ci-months'),
+            unit: byId('ci-unit'),
+            unitLabel: byId('ci-unit-label'),
             contribution: byId('ci-contribution'),
             fee: byId('ci-fee'),
             finalLabel: byId('ci-final-label'),
@@ -343,6 +424,7 @@
         var quickButtons = root.querySelectorAll('[data-quick]');
         var chartModel = null;
         var resizeFrame = null;
+        var syncedDurationValue = null;
 
         function setText(node, value) {
             if (node) {
@@ -357,12 +439,60 @@
         }
 
         function formatRate(value) {
+            if (!Number.isFinite(value)) {
+                return '\u2014';
+            }
             return Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100);
+        }
+
+        function sanitizeDecimal(value) {
+            var cleaned = String(value == null ? '' : value).replace(/[^0-9.]/g, '');
+            var parts = cleaned.split('.');
+            if (parts.length > 2) {
+                cleaned = parts.shift() + '.' + parts.join('');
+            }
+            return cleaned;
+        }
+
+        function unitFactor() {
+            return MONTHS_PER_UNIT[state.unit] || 1;
+        }
+
+        function durationShort() {
+            var value = formatDuration(state.months / unitFactor());
+            var meta = UNIT_META[state.unit];
+            return value + ' ' + (value === '1' ? meta.singular : meta.prose);
+        }
+
+        function durationText() {
+            var value = formatDuration(state.months / unitFactor());
+            var meta = UNIT_META[state.unit];
+            return value + ' ' + (value === '1' ? meta.singular : meta.plural);
+        }
+
+        function updateUnitUi() {
+            if (el.unit) {
+                el.unit.value = state.unit;
+            }
+            if (el.unitLabel) {
+                el.unitLabel.textContent = UNIT_META[state.unit].short;
+            }
+            if (el.months) {
+                el.months.setAttribute('aria-label', 'Time horizon in ' + UNIT_META[state.unit].plural);
+            }
+        }
+
+        function syncDurationInput() {
+            var display = formatDuration(state.months / unitFactor());
+            if (el.months) {
+                el.months.value = display;
+            }
+            syncedDurationValue = display;
         }
 
         function updateSummary(result) {
             var take = result.takePct;
-            setText(el.finalLabel, (take > 0 ? 'Still invested after' : 'Projected final balance \u00b7') + ' ' + result.months + ' mo');
+            setText(el.finalLabel, (take > 0 ? 'Still invested after' : 'Projected final balance \u00b7') + ' ' + durationShort());
             setText(el.finalValue, formatMoney(result.final));
 
             if (take > 0) {
@@ -428,7 +558,7 @@
             });
 
             setText(el.tableMeta,
-                result.months + ' months \u00b7 ' + formatRate(result.rateInput) + '% / ' +
+                durationText() + ' \u00b7 ' + formatRate(result.rateInput) + '% / ' +
                 (result.period === 'year' ? 'yr' : 'mo') +
                 (result.contribution > 0 ? ' \u00b7 +' + formatMoney(result.contribution) + '/mo' : ''));
 
@@ -453,7 +583,7 @@
 
                 paneRows.forEach(function (row) {
                     html += '<div class="grid grid-cols-4 gap-2 py-1.5 border-b border-white/[0.04] text-[12px] tabular-nums">' +
-                        '<span class="text-white/60 font-medium">Month ' + row.m + '</span>' +
+                        '<span class="text-white/60 font-medium">Month ' + row.m + (row.partial ? ' <span class="text-white/35">(part)</span>' : '') + '</span>' +
                         '<span class="text-right font-bold text-white">' + formatMoney(row.balance) + '</span>';
 
                     if (take > 0) {
@@ -616,6 +746,16 @@
             updateTable(result);
             updateChart(result);
             syncControls(result);
+
+            var durationRow = el.months ? el.months.closest('.ci-duration-row') : null;
+            if (durationRow) {
+                var durationLong = el.months.value.length >= 3;
+                durationRow.classList.toggle('ci-duration-long', durationLong);
+                el.months.style.minWidth = '';
+                if (durationLong) {
+                    el.months.style.minWidth = Math.ceil(el.months.scrollWidth) + 'px';
+                }
+            }
         }
 
         function bindTextInput(input, options) {
@@ -624,12 +764,12 @@
             }
 
             input.addEventListener('input', function () {
-                var filtered = input.value.replace(options.decimals ? /[^0-9.]/g : /[^0-9]/g, '');
+                var filtered = options.decimals ? sanitizeDecimal(input.value) : input.value.replace(/[^0-9]/g, '');
                 input.value = filtered;
                 var parsed = options.decimals ? parseFloat(filtered) : parseInt(filtered, 10);
-                if (Number.isFinite(parsed)) {
-                    state[options.key] = parsed;
-                }
+                // An empty or partially typed value is treated as zero so the
+                // projections update on every keystroke without ever showing NaN.
+                state[options.key] = Number.isFinite(parsed) ? clamp(parsed, options.min, options.max) : options.min;
                 render();
             });
 
@@ -643,14 +783,56 @@
             });
         }
 
-        bindTextInput(el.principal, { key: 'principal', decimals: true, min: 1, max: 100000000 });
+        function bindDurationInput(input) {
+            if (!input) {
+                return;
+            }
+
+            input.addEventListener('input', function () {
+                var filtered = sanitizeDecimal(input.value);
+                input.value = filtered;
+                syncedDurationValue = null;
+                var parsed = parseFloat(filtered);
+                var value = Number.isFinite(parsed) ? parsed : 0;
+                state.months = clamp(value, 0, MAX_MONTHS / unitFactor()) * unitFactor();
+                render();
+            });
+
+            input.addEventListener('blur', function () {
+                if (input.value === syncedDurationValue) {
+                    syncDurationInput();
+                    render();
+                    return;
+                }
+
+                var parsed = parseFloat(input.value);
+                var value = Number.isFinite(parsed) ? parsed : 0;
+                value = clamp(value, 0, MAX_MONTHS / unitFactor());
+                var display = formatDuration(value);
+                state.months = parseFloat(display) * unitFactor();
+                input.value = display;
+                syncedDurationValue = display;
+                render();
+            });
+        }
+
+        bindTextInput(el.principal, { key: 'principal', decimals: true, min: 0, max: 100000000 });
         bindTextInput(el.rate, { key: 'rate', decimals: true, min: 0, max: 1000 });
-        bindTextInput(el.months, { key: 'months', decimals: false, min: 1, max: 600 });
+        bindDurationInput(el.months);
         bindTextInput(el.contribution, { key: 'contribution', decimals: true, min: 0, max: 100000000 });
+
+        if (el.unit) {
+            el.unit.addEventListener('change', function () {
+                state.unit = normalizeUnit(el.unit.value);
+                syncDurationInput();
+                updateUnitUi();
+                render();
+            });
+        }
 
         if (el.fee) {
             el.fee.addEventListener('input', function () {
-                var filtered = el.fee.value.replace(/[^0-9.]/g, '');
+                var filtered = sanitizeDecimal(el.fee.value);
                 el.fee.value = filtered;
                 var parsed = parseFloat(filtered);
                 state.feePct = Number.isFinite(parsed) ? clamp(parsed, 0, 100) : 0;
@@ -699,7 +881,7 @@
                 index = clamp(index, 0, chartModel.rows.length - 1);
                 var row = chartModel.rows[index];
 
-                var label = row.m === 0 ? 'Today' : 'Month ' + row.m;
+                var label = row.m === 0 ? 'Today' : 'Month ' + row.m + (row.partial ? ' (partial)' : '');
                 var html = '<div class="text-[11px] font-semibold text-white/80">' + label + '</div>' +
                     '<div class="mt-1 space-y-0.5 text-[11px]">' +
                     '<div class="flex items-center justify-between gap-4"><span class="text-white/50">This month\'s gain</span><span class="font-semibold text-white tabular-nums">' + formatMoney2(row.gain) + '</span></div>' +
@@ -750,6 +932,8 @@
             global.addEventListener('resize', scheduleRender);
         }
 
+        updateUnitUi();
+        syncDurationInput();
         render();
     }
 

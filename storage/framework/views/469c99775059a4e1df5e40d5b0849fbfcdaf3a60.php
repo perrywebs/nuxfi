@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\components\password-input.blade.php ENDPATH**/ ?>

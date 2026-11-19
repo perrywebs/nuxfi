@@ -14,8 +14,14 @@ class SignalSubscription extends Model
     protected $fillable = [
         'user_id',
         'signal_plan_id',
+        'starts_at',
         'expires_at',
         'status'
+    ];
+
+    protected $casts = [
+        'starts_at' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     public function user()
@@ -31,4 +37,9 @@ class SignalSubscription extends Model
 {
     return $this->belongsTo(SignalPlan::class, 'signal_plan_id');
 }
+
+    public function payment()
+    {
+        return $this->hasOne(SignalPayment::class, 'subscription_id');
+    }
 }

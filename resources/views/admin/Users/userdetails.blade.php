@@ -18,10 +18,21 @@
 
                 <a class="block px-4 py-2 text-sm text-content hover:bg-surface-alt transition-colors" href="{{ route('loginactivity', $user->id) }}">Login Activity</a>
 
-                @if ($user->status == null || $user->status == 'blocked')
-                    <a class="block px-4 py-2 text-sm text-content hover:bg-surface-alt transition-colors" href="{{ url('admin/dashboard/uunblock') }}/{{ $user->id }}">Unblock</a>
+                @if ($user->isProtectedAccount() || (int) Auth::guard('web')->id() === (int) $user->id)
+                    <span class="block px-4 py-2 text-sm text-content-muted cursor-not-allowed"
+                        title="This account is protected from deactivation.">Protected account</span>
+                @elseif ($user->isActive())
+                    <a class="block px-4 py-2 text-sm text-warning hover:bg-surface-alt transition-colors"
+                        href="{{ route('user.deactivate', $user->id) }}"
+                        onclick="event.preventDefault(); Swal.fire({ title: 'Deactivate {{ addslashes($user->name) }}?', text: 'The account keeps all of its data but the user will be signed out and blocked from logging in.', icon: 'warning', showCancelButton: true, confirmButtonColor: 'rgb(217,119,6)', confirmButtonText: 'Yes, deactivate' }).then(function (result) { if (result.isConfirmed) { window.location.href = '{{ route('user.deactivate', $user->id) }}'; } });">
+                        Deactivate Account
+                    </a>
                 @else
-                    <a class="block px-4 py-2 text-sm text-content hover:bg-surface-alt transition-colors" href="{{ url('admin/dashboard/uublock') }}/{{ $user->id }}">Block</a>
+                    <a class="block px-4 py-2 text-sm text-success hover:bg-surface-alt transition-colors"
+                        href="{{ route('user.activate', $user->id) }}"
+                        onclick="event.preventDefault(); Swal.fire({ title: 'Activate {{ addslashes($user->name) }}?', text: 'The user will be able to sign in again immediately.', icon: 'question', showCancelButton: true, confirmButtonColor: 'rgb(22,163,74)', confirmButtonText: 'Yes, activate' }).then(function (result) { if (result.isConfirmed) { window.location.href = '{{ route('user.activate', $user->id) }}'; } });">
+                        Activate Account
+                    </a>
                 @endif
 
                 @if ($user->trade_mode == 'on')
@@ -47,7 +58,12 @@
                 <a href="{{ route('showusers', $user->id) }}" class="block px-4 py-2 text-sm text-content hover:bg-surface-alt transition-colors">Add Referral</a>
                 <a href="#" @click.prevent="$dispatch('open-sendmailtooneusermodal'); open = false" class="block px-4 py-2 text-sm text-content hover:bg-surface-alt transition-colors">Send Email</a>
                 <a href="#" @click.prevent="$dispatch('open-switchusermodal'); open = false" class="block px-4 py-2 text-sm text-success hover:bg-surface-alt transition-colors">Login as {{ $user->name }}</a>
-                <a href="#" @click.prevent="$dispatch('open-deletemodal'); open = false" class="block px-4 py-2 text-sm text-danger hover:bg-surface-alt transition-colors">Delete {{ $user->name }}</a>
+                @if ($user->isProtectedAccount() || (int) Auth::guard('web')->id() === (int) $user->id)
+                    <span class="block px-4 py-2 text-sm text-content-muted cursor-not-allowed"
+                        title="This account is protected from deletion.">Delete (protected)</span>
+                @else
+                    <a href="#" @click.prevent="$dispatch('open-deletemodal'); open = false" class="block px-4 py-2 text-sm text-danger hover:bg-surface-alt transition-colors">Delete {{ $user->name }}</a>
+                @endif
             </x-admin.dropdown>
         </x-slot>
     </x-admin.page-header>
@@ -74,11 +90,13 @@
                 </div>
                 <div>
                     <h5 class="text-sm font-semibold text-content">User Account Status</h5>
-                    <div class="mt-1">
-                        @if ($user->status == 'blocked')
-                            <x-admin.badge type="danger">Blocked</x-admin.badge>
-                        @else
+                    <div class="mt-1 flex items-center gap-2">
+                        @if ($user->isActive())
                             <x-admin.badge type="success">Active</x-admin.badge>
+                            <span class="text-xs text-content-muted">Can sign in</span>
+                        @else
+                            <x-admin.badge type="danger">Inactive</x-admin.badge>
+                            <span class="text-xs text-content-muted">Sign-in blocked</span>
                         @endif
                     </div>
                 </div>

@@ -30,6 +30,8 @@ use App\Http\Controllers\Admin\ManageAssetController;
 use App\Http\Controllers\Admin\MembershipController;
 use App\Http\Controllers\Admin\SignalPlanController;
 use App\Http\Controllers\Admin\SignalController;
+use App\Http\Controllers\Admin\SignalPaymentController as AdminSignalPaymentController;
+use App\Http\Controllers\Admin\SignalPaymentMethodController;
 use App\Http\Controllers\Admin\TopupController;
 use App\Http\Controllers\Admin\TradingAssetController;
 use App\Http\Controllers\Admin\PreIpoController;
@@ -142,8 +144,8 @@ Route::middleware(['isadmin', '2fa'])->prefix('admin')->group(function () {
         Route::post('dashboard/users/bulk-action', 'bulkAction')->name('users.bulkAction');
         Route::get('dashboard/user-details/{id}', 'viewuser')->name('viewuser');
         Route::get('dashboard/email-verify/{id}', 'emailverify')->name('emailverify');
-        Route::get('dashboard/uublock/{id}', 'ublock');
-        Route::get('dashboard/uunblock/{id}', 'unblock');
+        Route::get('dashboard/uublock/{id}', 'ublock')->name('user.deactivate');
+        Route::get('dashboard/uunblock/{id}', 'unblock')->name('user.activate');
         Route::get('dashboard/delsystemuser/{id}', 'delsystemuser');
         Route::get('dashboard/usertrademode/{id}/{action}', 'usertrademode');
         Route::get('dashboard/userwalletstatus/{id}/{action}', 'userwalletstatus');
@@ -352,6 +354,16 @@ Route::middleware(['isadmin', '2fa'])->prefix('admin')->group(function () {
 
         //signalplan
     Route::resource('signal-plans', SignalPlanController::class);
+
+        // Signal subscription payments (manual crypto verification)
+    Route::get('signal-payments', [AdminSignalPaymentController::class, 'index'])->name('signal-payments.index');
+    Route::get('signal-payments/{id}', [AdminSignalPaymentController::class, 'show'])->name('signal-payments.show');
+    Route::post('signal-payments/{id}/approve', [AdminSignalPaymentController::class, 'approve'])->name('signal-payments.approve');
+    Route::post('signal-payments/{id}/reject', [AdminSignalPaymentController::class, 'reject'])->name('signal-payments.reject');
+
+        // Signal payment wallet configuration
+    Route::post('signal-payment-methods/{signalPaymentMethod}/toggle', [SignalPaymentMethodController::class, 'toggle'])->name('signal-payment-methods.toggle');
+    Route::resource('signal-payment-methods', SignalPaymentMethodController::class)->except(['show']);
 
     Route::controller(ManageTradeController::class)->group(function () {
         Route::get('managetrades', 'index')->name('admin.trades.index');

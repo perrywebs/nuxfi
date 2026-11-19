@@ -288,6 +288,9 @@
                         <a href="{{ route('user.signal.subscriptions') }}"
                             class="block py-1.5 px-3 text-sm rounded-lg {{ request()->routeIs('user.signal.subscriptions') ? 'text-primary font-medium' : 'text-content-tertiary hover:text-content-primary' }} transition-colors">My
                             Subscriptions</a>
+                        <a href="{{ route('user.signal.payments') }}"
+                            class="block py-1.5 px-3 text-sm rounded-lg {{ request()->routeIs('user.signal.payments') || request()->routeIs('user.signal.payment.*') ? 'text-primary font-medium' : 'text-content-tertiary hover:text-content-primary' }} transition-colors">Payment
+                            History</a>
                     </div>
                 </div>
             @endif

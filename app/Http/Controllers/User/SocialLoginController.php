@@ -55,6 +55,12 @@ class SocialLoginController extends Controller
         $agent = new Agent();
 
         if ($user) {
+            if ($user->isInactive()) {
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Your account has been deactivated. Please contact support for assistance.',
+                ]);
+            }
+
             Auth::login($user);
             DB::table('activities')->insert([
                 'user' => $user->id,

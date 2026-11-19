@@ -17,5 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:5,1')->post('/create-account', [ApiAuthController::class, 'register']);
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    abort_if($request->user()->isInactive(), 403, 'Your account has been deactivated.');
+
     return $request->user();
 });

@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\user\verify-email.blade.php ENDPATH**/ ?>

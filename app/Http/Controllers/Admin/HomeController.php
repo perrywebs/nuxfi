@@ -48,8 +48,8 @@ class HomeController extends Controller
         $pending_withdrawn = DB::table('withdrawals')->select(DB::raw("SUM(amount) as count"))->where('status', 'Pending')->where('verification', '!=', 'Uncompleted')->get();
 
         $userlist = User::count();
-        $activeusers = User::where('status', 'active')->count();
-        $blockeusers = User::where('status', 'blocked')->count();
+        $activeusers = User::active()->count();
+        $blockeusers = User::inactive()->count();
         $plans = Plans::count();
         $unverifiedusers = User::where('account_verify', '!=', 'yes')->count();
 
@@ -178,9 +178,19 @@ class HomeController extends Controller
 
     public function activeInvestments()
     {
+        $plans = User_plans::where('active', 'yes')
+            ->orderByDesc('id')
+            ->with(['dplan', 'duser'])
+            ->get();
+
         return view('admin.Plans.activeinv', [
             'title' => 'Active investment plans',
-            'plans' => User_plans::where('active', 'yes')->orderByDesc('id')->with(['dplan', 'duser'])->get(),
+            'plans' => $plans,
+            'settings' => Settings::find(1),
+            // Active plans can outlive the user or plan they point at when an
+            // account is removed. Surface those rows instead of failing the page.
+            'orphanedUserCount' => $plans->filter(fn ($plan) => $plan->duser === null)->count(),
+            'orphanedPlanCount' => $plans->filter(fn ($plan) => $plan->dplan === null)->count(),
         ]);
     }
 

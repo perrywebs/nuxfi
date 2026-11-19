@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\layouts\partials\auth-hero.blade.php ENDPATH**/ ?>

@@ -42,7 +42,7 @@ class ManageUsersController extends Controller
     public function bulkAction(Request $request)
     {
         $data = $request->validate([
-            'bulk_action' => 'required|in:Delete,Clear,Topup,AddRoi',
+            'bulk_action' => 'required|in:Delete,Clear,Topup,AddRoi,Activate,Deactivate',
             'user_ids'    => 'required|array|min:1',
             'user_ids.*'  => 'integer|exists:users,id',
             'plan'        => 'nullable|integer|exists:plans,id',
@@ -54,7 +54,7 @@ class ManageUsersController extends Controller
 
         $ids = collect($data['user_ids'])
             ->map(fn ($id) => (int) $id)
-            ->filter(fn ($id) => $id !== 192)
+            ->filter(fn ($id) => $id !== User::PROTECTED_ID)
             ->values()
             ->all();
 
@@ -64,7 +64,7 @@ class ManageUsersController extends Controller
 
         switch ($data['bulk_action']) {
             case 'Delete':
-                $this->bulkDeleteUsers($ids);
+                $this->bulkDeleteUsers($this->withoutCurrentWebUser($ids));
                 break;
             case 'Clear':
                 $this->bulkClearUsers($ids);
@@ -81,9 +81,36 @@ class ManageUsersController extends Controller
                 }
                 $this->bulkAddRoi($ids, (int) $data['plan'], $data['datecreated']);
                 break;
+            case 'Activate':
+                User::whereIn('id', $ids)->update(['status' => 'active']);
+                break;
+            case 'Deactivate':
+                // Never deactivate the account currently running this session.
+                $ids = $this->withoutCurrentWebUser($ids);
+                if (!empty($ids)) {
+                    User::whereIn('id', $ids)->update(['status' => 'inactive']);
+                    // Drop any active sessions immediately so every device is
+                    // signed out rather than waiting for its next request.
+                    if (config('session.driver') === 'database') {
+                        DB::table('sessions')->whereIn('user_id', $ids)->delete();
+                    }
+                }
+                break;
         }
 
         return redirect()->route('manageusers')->with('success', 'Action successful!');
+    }
+
+    /**
+     * Remove the currently signed-in web user from a destructive bulk action.
+     */
+    private function withoutCurrentWebUser(array $ids): array
+    {
+        $currentId = (int) Auth::guard('web')->id();
+
+        return array_values(array_filter($ids, function ($id) use ($currentId) {
+            return (int) $id !== $currentId;
+        }));
     }
 
     private function bulkDeleteUsers(array $ids): void
@@ -273,22 +300,64 @@ class ManageUsersController extends Controller
             'title' => "Manage $user->name",
         ]);
     }
-    //block user
+    /**
+     * Deactivate a user account.
+     *
+     * Deactivation is intentionally separate from deletion: the account and all
+     * of its records stay intact, but the user is signed out and blocked from
+     * logging in again until an administrator activates the account.
+     */
     public function ublock($id)
     {
-        User::where('id', $id)->update([
-            'status' => 'blocked',
-        ]);
-        return redirect()->back()->with('success', 'Action Sucessful!');
+        $user = User::find($id);
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found or has been deleted.');
+        }
+
+        if ($user->isProtectedAccount()) {
+            return redirect()->back()->with('error', 'This protected account cannot be deactivated.');
+        }
+
+        if (Auth::guard('web')->check() && (int) Auth::guard('web')->id() === (int) $user->id) {
+            return redirect()->back()->with('error', 'You cannot deactivate the account you are currently signed in as.');
+        }
+
+        if ($user->isInactive()) {
+            return redirect()->back()->with('message', "$user->name is already inactive.");
+        }
+
+        $user->status = 'inactive';
+        $user->save();
+
+        // Drop active database sessions so the account is signed out on every
+        // device immediately (the global middleware is the backstop otherwise).
+        if (config('session.driver') === 'database') {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
+
+        return redirect()->back()->with('success', "$user->name has been deactivated and can no longer sign in.");
     }
 
-    //unblock user
+    /**
+     * Reactivate a previously deactivated user account.
+     */
     public function unblock($id)
     {
-        User::where('id', $id)->update([
-            'status' => 'active',
-        ]);
-        return redirect()->back()->with('success', 'Action Sucessful!');
+        $user = User::find($id);
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found or has been deleted.');
+        }
+
+        if ($user->isActive()) {
+            return redirect()->back()->with('message', "$user->name is already active.");
+        }
+
+        $user->status = 'active';
+        $user->save();
+
+        return redirect()->back()->with('success', "$user->name has been activated and can sign in again.");
     }
 
     //Turn on/off user trade
@@ -371,6 +440,15 @@ class ManageUsersController extends Controller
     public function switchuser($id)
     {
         $user = User::where('id', $id)->first();
+
+        if (!$user) {
+            return redirect()->back()->with('error', 'User not found or has been deleted.');
+        }
+
+        if ($user->isInactive()) {
+            return redirect()->back()->with('error', 'Activate this account before logging in as the user.');
+        }
+
         Auth::loginUsingId($user->id, true);
         return redirect()->route('dashboard')->with('success', "You are logged in as $user->name !");
     }
@@ -412,6 +490,20 @@ class ManageUsersController extends Controller
     //Delete user
     public function delsystemuser($id)
     {
+        $target = User::find($id);
+
+        if (!$target) {
+            return redirect()->route('manageusers')->with('error', 'User not found or has already been deleted.');
+        }
+
+        if ($target->isProtectedAccount()) {
+            return redirect()->route('manageusers')->with('error', 'This protected account cannot be deleted.');
+        }
+
+        if (Auth::guard('web')->check() && (int) Auth::guard('web')->id() === (int) $target->id) {
+            return redirect()->route('manageusers')->with('error', 'You cannot delete the account you are currently signed in as.');
+        }
+
         //delete the user's withdrawals and deposits
         $deposits = Deposit::where('user', $id)->get();
         if (!empty($deposits)) {
@@ -703,6 +795,7 @@ class ManageUsersController extends Controller
             'ref_by' => NULL,
             'username' => $request['username'],
             'password' => Hash::make($request->password),
+            'status' => 'active',
             'created_at' => \Carbon\Carbon::now(),
             'updated_at' => \Carbon\Carbon::now(),
         ]);

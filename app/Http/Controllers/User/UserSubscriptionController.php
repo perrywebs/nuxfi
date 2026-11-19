@@ -3,89 +3,93 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Mail\NewNotification;
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Signal;
-use App\Models\Mt4Details;
 use App\Models\Settings;
+use App\Models\Signal;
+use App\Models\SignalPayment;
+use App\Models\SignalPaymentMethod;
 use App\Models\SignalPlan;
 use App\Models\SignalSubscription;
-use App\Models\Tp_Transaction;
+use App\Services\SignalPaymentService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class UserSubscriptionController extends Controller
 {
-
-
-
-    public function index()
-{
-    $user = auth()->user();
-    $title = "Signal Subscribed";
-    // Check if the user has an active signal subscription
-    $activeSubscription = SignalSubscription::where('user_id', $user->id)
-        ->where('expires_at', '>', now())
-        ->exists();
-
-    if (!$activeSubscription) {
-        return redirect()->route('user.signal.plans')->with('message', 'You need an active subscription to view signals.');
+    public function __construct(private SignalPaymentService $payments)
+    {
     }
 
-    $signals = Signal::latest()->get(); // Fetch all signals
-    return view('user.signals.index', compact('signals','title'));
-}
+    public function index()
+    {
+        $user = auth()->user();
+        $title = 'Signal Subscribed';
+        $settings = Settings::where('id', 1)->first();
+
+        // Check if the user has an active signal subscription
+        $activeSubscription = SignalSubscription::where('user_id', $user->id)
+            ->where('expires_at', '>', now())
+            ->exists();
+
+        if (!$activeSubscription) {
+            return redirect()->route('user.signal.plans')->with('message', 'You need an active subscription to view signals.');
+        }
+
+        $signals = Signal::latest()->get();
+        return view('user.signals.index', compact('signals', 'title', 'settings'));
+    }
 
     public function showPlans()
     {
         $plans = SignalPlan::all();
-        $settings = Settings::where('id',1)->first();
+        $settings = Settings::where('id', 1)->first();
         $title = 'Suscribe Signals';
-        return view('user.signals.subscribe', compact('plans','title','settings'));
+
+        $pendingPayments = SignalPayment::where('user_id', Auth::id())
+            ->pending()
+            ->latest('id')
+            ->get();
+
+        return view('user.signals.subscribe', compact('plans', 'title', 'settings', 'pendingPayments'));
     }
 
-    // Handle Subscription Logic
+    /**
+     * Create a manual crypto payment request. No wallet balance is deducted.
+     */
     public function subscribe(Request $request)
     {
-        $user = Auth::user();
-        $plan = SignalPlan::findOrFail($request->plan_id);
-
-        // Check if user has enough balance
-        if ($user->account_bal < $plan->price) {
-            return back()->with('message', 'Insufficient balance to subscribe.');
-        }
-
-        // Deduct balance
-        $user->account_bal -= $plan->price;
-        $user->save();
-
-        // Store subscription
-        SignalSubscription::create([
-            'user_id' => $user->id,
-            'signal_plan_id' => $plan->id,
-            'expires_at' => now()->addDays($plan->duration)
+        $validated = $request->validate([
+            'plan_id' => 'required|integer|exists:signal_plans,id',
         ]);
 
-        \App\Services\NotificationService::notifyUser($user, 'signal', 'Signal Subscription Active', 'You subscribed to the ' . $plan->name . ' signal plan.', url('dashboard/signals'));
-        \App\Services\NotificationService::notifyAdmin('signal', 'New Signal Subscription', $user->name . ' subscribed to the ' . $plan->name . ' signal plan for $' . number_format($plan->price, 2) . '.', url('admin/dashboard/signals'));
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $plan = SignalPlan::findOrFail($validated['plan_id']);
 
-        return redirect()->route('user.signal.subscriptions')->with('success', 'Subscription successful!');
+        $payment = $this->payments->createRequest($user, $plan);
+
+        return redirect()
+            ->route('user.signal.payment.show', $payment->id)
+            ->with('success', 'Your signal payment request was created. Complete the cryptocurrency payment below.');
     }
 
-    // Show user's active subscriptions
+    // Show user's signal subscriptions
     public function mySubscriptions()
     {
         $title = 'Signals';
-        $settings = Settings::where('id',1)->first();
+        $settings = Settings::where('id', 1)->first();
         $subscriptions = SignalSubscription::where('user_id', Auth::id())
             ->with('plan')
+            ->latest('id')
             ->get();
 
-        return view('user.signals.subscriptions', compact('subscriptions','title','settings'));
+        return view('user.signals.subscriptions', compact('subscriptions', 'title', 'settings'));
     }
 
-    // Renew an existing signal subscription
+    /**
+     * Renewing now creates a new manual crypto payment request instead of
+     * deducting from the internal wallet.
+     */
     public function renew(Request $request, $subscriptionId)
     {
         $subscription = SignalSubscription::where('id', $subscriptionId)
@@ -93,27 +97,79 @@ class UserSubscriptionController extends Controller
             ->firstOrFail();
 
         $plan = SignalPlan::findOrFail($subscription->signal_plan_id);
-        $user = User::find(Auth::id());
 
-        if ($user->account_bal < $plan->price) {
-            return redirect()->back()->with('message', 'Insufficient balance to renew subscription.');
-        }
+        $payment = $this->payments->createRequest(Auth::user(), $plan);
 
-        $user->account_bal -= $plan->price;
-        $user->save();
-
-        // If still active, extend from current expiry; if expired, start from now
-        $baseDate = $subscription->expires_at > now()
-            ? \Carbon\Carbon::parse($subscription->expires_at)
-            : now();
-
-        $subscription->expires_at = $baseDate->addDays($plan->duration);
-        $subscription->save();
-
-        \App\Services\NotificationService::notifyUser($user, 'signal', 'Signal Subscription Renewed', 'Your ' . $plan->name . ' signal subscription has been renewed.', url('dashboard/signals'));
-        \App\Services\NotificationService::notifyAdmin('signal', 'Signal Subscription Renewed', $user->name . ' renewed the ' . $plan->name . ' signal plan for $' . number_format($plan->price, 2) . '.', url('admin/dashboard/signals'));
-
-        return redirect()->back()->with('success', 'Subscription renewed successfully!');
+        return redirect()
+            ->route('user.signal.payment.show', $payment->id)
+            ->with('success', 'Your renewal payment request was created. Complete the cryptocurrency payment below.');
     }
 
+    /**
+     * Dedicated signal payment page for the authenticated user's own request.
+     */
+    public function showPayment($id)
+    {
+        $settings = Settings::where('id', 1)->first();
+
+        $payment = SignalPayment::with(['signalPlan', 'paymentMethod'])
+            ->where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        $methods = SignalPaymentMethod::active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $title = 'Signal Payment';
+
+        return view('user.signals.payment', compact('payment', 'methods', 'settings', 'title'));
+    }
+
+    /**
+     * Attach the transaction hash + chosen method to the pending request.
+     */
+    public function confirmPayment(Request $request, $id)
+    {
+        $payment = SignalPayment::where('user_id', Auth::id())->findOrFail($id);
+
+        $validated = $request->validate([
+            'payment_method_id' => 'required|integer|exists:signal_payment_methods,id',
+            'tx_hash'           => 'required|string|min:6|max:191',
+        ]);
+
+        $method = SignalPaymentMethod::active()->find($validated['payment_method_id']);
+
+        if (!$method) {
+            return redirect()->back()->withInput()->withErrors([
+                'payment_method_id' => 'The selected payment method is not available.',
+            ]);
+        }
+
+        try {
+            $this->payments->submitTransaction($payment, $method, $validated['tx_hash']);
+        } catch (ValidationException $e) {
+            return redirect()->back()->withInput()->withErrors($e->errors());
+        }
+
+        return redirect()
+            ->route('user.signal.payment.show', $payment->id)
+            ->with('success', 'Payment confirmation submitted. Your subscription will be activated after admin verification.');
+    }
+
+    /**
+     * User payment history — scoped strictly to the authenticated user.
+     */
+    public function paymentHistory()
+    {
+        $settings = Settings::where('id', 1)->first();
+        $title = 'Signal Payment History';
+
+        $payments = SignalPayment::with(['signalPlan', 'paymentMethod'])
+            ->where('user_id', Auth::id())
+            ->latest('id')
+            ->paginate(10);
+
+        return view('user.signals.payments', compact('payments', 'settings', 'title'));
+    }
 }

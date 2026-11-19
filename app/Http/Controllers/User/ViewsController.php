@@ -73,10 +73,15 @@ class ViewsController extends Controller
 
         $total_withdrawal = DB::table('withdrawals')->where('user', $user->id)->where('status', 'Processed')->sum('amount');
 
-        //log user out if not blocked by admin
-        if ($user->status != "active") {
-            $request->session()->flush();
-            return redirect()->route('dashboard');
+        // Log the user out if an administrator deactivated the account.
+        if (!$user->isActive()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Your account has been deactivated. Please contact support for assistance.',
+            ]);
         }
 
         //tradings stats start

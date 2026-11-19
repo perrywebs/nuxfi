@@ -75,6 +75,8 @@
 
         <div class="mb-3 flex flex-wrap items-center gap-2">
             <span class="text-xs text-content-muted">With selected:</span>
+            <button type="button" onclick="submitBulk('Activate')" class="inline-flex items-center gap-1.5 bg-success/10 text-success hover:bg-success/20 border border-success/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">Activate</button>
+            <button type="button" onclick="submitBulk('Deactivate')" class="inline-flex items-center gap-1.5 bg-warning/10 text-warning hover:bg-warning/20 border border-warning/30 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">Deactivate</button>
             <button type="button" onclick="submitBulk('Delete')" class="inline-flex items-center gap-1.5 bg-danger text-content-inverse hover:bg-danger/80 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">Delete</button>
             <button type="button" onclick="submitBulk('Clear')" class="inline-flex items-center gap-1.5 bg-warning text-content-inverse hover:bg-warning/80 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">Clear Account</button>
             <button type="button" @click="showTrading = true" class="inline-flex items-center gap-1.5 bg-info text-content-inverse hover:bg-info/80 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">Add ROI</button>
@@ -108,17 +110,32 @@
                             <td class="px-4 py-3 text-content-secondary">{{ $user->email }}</td>
                             <td class="px-4 py-3 text-content-secondary">{{ $user->phone }}</td>
                             <td class="px-4 py-3">
-                                @if ($user->status == 'active')
-                                    <x-admin.badge type="success">{{ $user->status }}</x-admin.badge>
+                                @if ($user->isActive())
+                                    <x-admin.badge type="success">Active</x-admin.badge>
                                 @else
-                                    <x-admin.badge type="danger">{{ $user->status }}</x-admin.badge>
+                                    <x-admin.badge type="danger">Inactive</x-admin.badge>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-content-secondary whitespace-nowrap">{{ optional($user->created_at)->diffForHumans() }}</td>
                             <td class="px-4 py-3">
-                                <a href="{{ route('viewuser', $user->id) }}" class="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary-hover rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">
-                                    Manage
-                                </a>
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ route('viewuser', $user->id) }}" class="inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary-hover rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">
+                                        Manage
+                                    </a>
+                                    @if ($user->isActive())
+                                        <a href="{{ route('user.deactivate', $user->id) }}"
+                                            onclick="return confirmStatus(event, 'deactivate', '{{ addslashes($user->name) }}', '{{ route('user.deactivate', $user->id) }}')"
+                                            class="inline-flex items-center gap-1.5 bg-warning/10 text-warning hover:bg-warning/20 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border border-warning/30">
+                                            Deactivate
+                                        </a>
+                                    @else
+                                        <a href="{{ route('user.activate', $user->id) }}"
+                                            onclick="return confirmStatus(event, 'activate', '{{ addslashes($user->name) }}', '{{ route('user.activate', $user->id) }}')"
+                                            class="inline-flex items-center gap-1.5 bg-success/10 text-success hover:bg-success/20 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors border border-success/30">
+                                            Activate
+                                        </a>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -306,6 +323,32 @@
     function submitBulk(action) {
         if (!hasSelection()) return;
         document.getElementById('bulk_action_input').value = action;
+
+        if (window.Swal) {
+            const messages = {
+                Delete: { title: 'Delete selected users?', text: 'This permanently removes the accounts and their records. This cannot be undone.', icon: 'error', confirm: 'Yes, delete' },
+                Clear: { title: 'Clear selected accounts?', text: 'Balances will be reset and deposits/withdrawals removed.', icon: 'warning', confirm: 'Yes, clear' },
+                Activate: { title: 'Activate selected users?', text: 'These users will be able to sign in again.', icon: 'question', confirm: 'Yes, activate' },
+                Deactivate: { title: 'Deactivate selected users?', text: 'These users will be signed out and blocked from signing in. Their data is kept.', icon: 'warning', confirm: 'Yes, deactivate' }
+            };
+            const message = messages[action];
+            if (message) {
+                Swal.fire({
+                    title: message.title,
+                    text: message.text,
+                    icon: message.icon,
+                    showCancelButton: true,
+                    confirmButtonColor: action === 'Delete' ? 'rgb(220,38,38)' : 'rgb(14,165,233)',
+                    confirmButtonText: message.confirm
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        document.getElementById('bulkForm').submit();
+                    }
+                });
+                return;
+            }
+        }
+
         document.getElementById('bulkForm').submit();
     }
 
@@ -317,7 +360,36 @@
         if (action === 'Clear') {
             return confirm('Clear balances and remove deposits/withdrawals for the selected users?');
         }
+        if (action === 'Deactivate') {
+            return confirm('Deactivate the selected users? They will be signed out and blocked from signing in.');
+        }
         return true;
+    }
+
+    function confirmStatus(event, action, name, url) {
+        event.preventDefault();
+        const isDeactivate = action === 'deactivate';
+        const go = function () { window.location.href = url; };
+
+        if (!window.Swal) {
+            if (confirm((isDeactivate ? 'Deactivate ' : 'Activate ') + name + '?')) go();
+            return false;
+        }
+
+        Swal.fire({
+            title: (isDeactivate ? 'Deactivate ' : 'Activate ') + name + '?',
+            text: isDeactivate
+                ? 'The account keeps all of its data but the user will be signed out and blocked from logging in.'
+                : 'The user will be able to sign in again immediately.',
+            icon: isDeactivate ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonColor: isDeactivate ? 'rgb(217,119,6)' : 'rgb(22,163,74)',
+            confirmButtonText: isDeactivate ? 'Yes, deactivate' : 'Yes, activate'
+        }).then(function (result) {
+            if (result.isConfirmed) go();
+        });
+
+        return false;
     }
 
     function submitRoi() {

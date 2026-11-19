@@ -3,7 +3,6 @@
 namespace App\Http\Livewire\User;
 
 use App\Models\SignalPlan;
-use App\Models\SignalSubscription;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -48,21 +47,14 @@ class SubscribeToSignal extends Component
 
         $user = User::find(Auth::id());
 
-        if ($user->account_bal < $plan->price) {
-            session()->flash('message', 'Insufficient balance to subscribe.');
+        if (!$user) {
+            session()->flash('message', 'Please sign in to continue.');
             return;
         }
 
-        $user->account_bal -= $plan->price;
-        $user->save();
+        // Manual crypto payment: never deduct from the internal wallet.
+        $payment = app(\App\Services\SignalPaymentService::class)->createRequest($user, $plan);
 
-        SignalSubscription::create([
-            'user_id' => $user->id,
-            'signal_plan_id' => $plan->id,
-            'expires_at' => now()->addDays($plan->duration),
-        ]);
-
-        $this->hasSubscribe = true;
-        session()->flash('success', 'You have successfully subscribed to trading signals!');
+        return redirect()->route('user.signal.payment.show', $payment->id);
     }
 }

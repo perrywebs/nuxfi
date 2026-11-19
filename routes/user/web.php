@@ -237,6 +237,11 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('dashboard')->group(func
          Route::post('/subscribe', [UserSubscriptionController::class, 'subscribe'])->name('user.signal.subscribe');
          Route::get('/my-subscriptions', [UserSubscriptionController::class, 'mySubscriptions'])->name('user.signal.subscriptions');
          Route::get('/singalssubscriptions', [UserSubscriptionController::class, 'index'])->name('user.signal.index');
+
+         // Manual crypto signal payments
+         Route::get('/signal-payments', [UserSubscriptionController::class, 'paymentHistory'])->name('user.signal.payments');
+         Route::get('/signal-payments/{signalPayment}', [UserSubscriptionController::class, 'showPayment'])->name('user.signal.payment.show');
+         Route::post('/signal-payments/{signalPayment}/confirm', [UserSubscriptionController::class, 'confirmPayment'])->name('user.signal.payment.confirm');
      });
     //nft biding
 

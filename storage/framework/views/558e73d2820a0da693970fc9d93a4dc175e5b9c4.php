@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\components\social-login.blade.php ENDPATH**/ ?>

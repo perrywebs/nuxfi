@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\components\auth-trust-badges.blade.php ENDPATH**/ ?>

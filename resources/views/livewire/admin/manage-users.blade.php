@@ -73,10 +73,10 @@
                             <td class="px-4 py-3 text-content-secondary">{{ $user->email }}</td>
                             <td class="px-4 py-3 text-content-secondary">{{ $user->phone }}</td>
                             <td class="px-4 py-3">
-                                @if ($user->status == 'active')
-                                    <x-admin.badge type="success">{{ $user->status }}</x-admin.badge>
+                                @if ($user->isActive())
+                                    <x-admin.badge type="success">Active</x-admin.badge>
                                 @else
-                                    <x-admin.badge type="danger">{{ $user->status }}</x-admin.badge>
+                                    <x-admin.badge type="danger">Inactive</x-admin.badge>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-content-secondary whitespace-nowrap">{{ $user->created_at->diffForHumans() }}</td>

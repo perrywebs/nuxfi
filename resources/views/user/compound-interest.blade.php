@@ -33,6 +33,19 @@
             min-width: 0;
         }
 
+        #ci-app .ci-duration-row {
+            flex-wrap: nowrap;
+        }
+
+        #ci-app .ci-duration-row.ci-duration-long {
+            flex-wrap: wrap;
+        }
+
+        #ci-app .ci-duration-input {
+            flex: 1 1 0%;
+            min-width: 0;
+        }
+
         #ci-app button,
         #ci-app input {
             -webkit-tap-highlight-color: transparent;
@@ -180,11 +193,24 @@
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight min-h-[1.6em]">
                         Time horizon
                     </p>
-                    <div class="flex items-baseline gap-1 mt-1.5">
-                        <input id="ci-months" type="text" inputmode="numeric" value="12"
+                    <div class="ci-duration-row flex items-baseline gap-1 mt-1.5">
+                        <input id="ci-months" type="text" inputmode="decimal" value="12"
                             aria-label="Time horizon in months"
-                            class="w-full bg-transparent text-2xl font-black tabular-nums text-white outline-none focus:text-cyan-200 transition-colors">
-                        <span class="text-white/45 text-sm font-semibold shrink-0">mo</span>
+                            class="ci-duration-input w-full bg-transparent text-2xl font-black tabular-nums text-white outline-none focus:text-cyan-200 transition-colors">
+                        <div class="relative inline-flex items-center gap-1 shrink-0 ml-auto">
+                            <span id="ci-unit-label" class="text-white/45 text-sm font-semibold">mo</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="w-3 h-3 text-white/35 pointer-events-none">
+                                <path d="m6 9 6 6 6-6"></path>
+                            </svg>
+                            <select id="ci-unit" aria-label="Time horizon unit"
+                                class="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer">
+                                <option value="mo">mo — Months</option>
+                                <option value="wk">wk — Weeks</option>
+                                <option value="day">day — Days</option>
+                            </select>
+                        </div>
                     </div>
                     <p class="text-[10px] text-white/30 mt-1 truncate">How long it runs</p>
                 </div>

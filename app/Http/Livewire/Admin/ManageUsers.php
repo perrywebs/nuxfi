@@ -104,6 +104,7 @@ class ManageUsers extends Component
             'ref_by' => NULL,
             'username' => $this->username,
             'password' => Hash::make($this->password),
+            'status' => 'active',
             'created_at' => \Carbon\Carbon::now(),
             'updated_at' => \Carbon\Carbon::now(),
         ]);

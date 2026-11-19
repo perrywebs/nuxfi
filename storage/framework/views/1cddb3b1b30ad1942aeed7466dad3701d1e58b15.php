@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\nuxfi\resources\views\admin\Settings\SubscriptionSettings\subscription.blade.php ENDPATH**/ ?>

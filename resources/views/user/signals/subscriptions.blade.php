@@ -17,7 +17,10 @@
             <h2 class="text-xl font-bold text-content-primary">My Signal Subscriptions</h2>
             <p class="text-sm text-content-secondary mt-1">View your active signal plan subscriptions</p>
         </div>
-        <a href="{{ route('user.signal.plans') }}" class="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-content-inverse text-sm font-medium transition-colors">Browse Plans</a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('user.signal.payments') }}" class="px-4 py-2 rounded-lg bg-surface-overlay border border-surface-border text-content-secondary hover:text-content-primary text-sm font-medium transition-colors">Payment History</a>
+            <a href="{{ route('user.signal.plans') }}" class="px-4 py-2 rounded-lg bg-primary hover:bg-primary-dark text-content-inverse text-sm font-medium transition-colors">Browse Plans</a>
+        </div>
     </div>
 
     {{-- Subscriptions Table --}}
@@ -82,12 +85,14 @@
     function confirmRenewal(subscriptionId, planName, price) {
         Swal.fire({
             title: 'Renew Subscription',
-            text: 'Renew ' + planName + ' for {{ $settings->currency }}' + price.toLocaleString() + '?',
+            html: 'Create a renewal payment request for <strong>' + planName + '</strong>?<br><br>' +
+                  'Amount: <strong>{{ $settings->currency }}' + price.toLocaleString() + '</strong><br>' +
+                  '<span style="font-size:12px;color:#9AA0AB;">You will be redirected to the crypto payment page. Your subscription renews after admin approval.</span>',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#059669',
             cancelButtonColor: '#2A2F36',
-            confirmButtonText: 'Yes, Renew!',
+            confirmButtonText: 'Continue to Payment',
             cancelButtonText: 'Cancel',
             background: '#161A1E',
             color: '#E8EAED'

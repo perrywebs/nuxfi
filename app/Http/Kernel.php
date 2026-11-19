@@ -2,6 +2,7 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureKycIsCompleted;
 use App\Http\Middleware\RedirectIfAdminIsLoggedIIn;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
@@ -36,6 +37,7 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
             \Laravel\Jetstream\Http\Middleware\AuthenticateSession::class,
+            EnsureAccountIsActive::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -59,6 +61,7 @@ class Kernel extends HttpKernel
         '2fa' =>  \App\Http\Middleware\TwoFactorVerify::class,
         'isadmin' => \App\Http\Middleware\EnsureIsAdmin::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
+        'account.active' => \App\Http\Middleware\EnsureAccountIsActive::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,

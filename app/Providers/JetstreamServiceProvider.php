@@ -8,6 +8,7 @@ use Laravel\Jetstream\Jetstream;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Fortify;
 use Illuminate\Support\Facades\DB;
 use App\Models\Settings;
@@ -54,6 +55,13 @@ class JetstreamServiceProvider extends ServiceProvider
                 $user &&
                 Hash::check($request->password, $user->password)
             ) {
+                // Inactive accounts must not be able to start a new session.
+                if (!$user->isActive()) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Your account has been deactivated. Please contact support for assistance.',
+                    ]);
+                }
+
                 $request->session()->put('getAnouc', 'true');
                 DB::table('activities')->insert([
                     'user' => $user->id,
