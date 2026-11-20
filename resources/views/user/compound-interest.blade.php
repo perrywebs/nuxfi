@@ -3,16 +3,24 @@
 @section('content')
 
     <style>
+        #ci-app {
+            --ci-primary: {{ $themeColors->primary_color ?? '#059669' }};
+            --ci-primary-light: {{ $themeColors->primary_light ?? '#34D399' }};
+            --ci-surface: {{ $themeColors->surface_raised ?? '#161A1E' }};
+            --ci-overlay: {{ $themeColors->surface_overlay ?? '#1C2127' }};
+            --ci-border: {{ $themeColors->surface_border ?? '#2A2F36' }};
+        }
+
         #ci-app .ci-take-active {
-            background: linear-gradient(90deg, #22d3ee, #818cf8);
-            color: #06121a;
+            background: var(--ci-primary);
+            color: #fff;
             border-color: transparent;
         }
 
         #ci-app .ci-pill-active {
-            background-color: rgba(34, 211, 238, .15);
-            color: #a5f3fc;
-            border-color: rgba(34, 211, 238, .4);
+            background-color: color-mix(in srgb, var(--ci-primary) 14%, transparent);
+            color: var(--ci-primary-light);
+            border-color: color-mix(in srgb, var(--ci-primary) 40%, transparent);
         }
 
         #ci-app .ci-chart-tooltip {
@@ -22,11 +30,22 @@
             pointer-events: none;
             min-width: 180px;
             padding: 8px 12px;
-            border: 1px solid rgba(34, 211, 238, .25);
+            border: 1px solid var(--ci-border);
             border-radius: 12px;
-            background: #0b1019;
+            background: var(--ci-overlay);
             color: #fff;
             box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .8);
+        }
+
+        #ci-app .text-cyan-300,
+        #ci-app .text-cyan-200 {
+            color: var(--ci-primary-light) !important;
+        }
+
+        #ci-app .border-cyan-400\/20,
+        #ci-app .border-cyan-400\/25,
+        #ci-app .border-cyan-400\/40 {
+            border-color: color-mix(in srgb, var(--ci-primary) 35%, transparent) !important;
         }
 
         #ci-app input {
@@ -67,14 +86,13 @@
             </a>
 
             <div class="text-center px-10 sm:px-12">
-                <p class="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-300/70">
+                <p class="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-primary-light/70">
                     <x-icon name="calculator" class="w-3.5 h-3.5" />
                     Free tool · No signup
                 </p>
                 <h1 class="text-[26px] leading-[1.12] sm:text-5xl font-black tracking-tight mt-2 text-white text-balance">
                     Compound Interest
-                    <span class="bg-clip-text text-transparent"
-                        style="background-image: linear-gradient(135deg, #67e8f9, #22d3ee, #818cf8);">Calculator</span>
+                    <span class="text-primary-light">Calculator</span>
                 </h1>
                 <p class="text-[12.5px] sm:text-sm text-white/55 mt-3 max-w-2xl mx-auto leading-relaxed">
                     Punch in a starting amount, your monthly return, and how long you let it run. Add recurring
@@ -85,16 +103,14 @@
         </div>
 
         {{-- Result hero --}}
-        <div class="relative overflow-hidden rounded-3xl border border-cyan-400/25 p-5 sm:p-7"
-            style="background: radial-gradient(ellipse 80% 70% at 80% 0%, rgba(34,211,238,0.16), transparent 60%), radial-gradient(ellipse 60% 60% at 10% 110%, rgba(129,140,248,0.12), transparent 60%), linear-gradient(160deg, #0b1019, #070b12);">
+        <div class="relative overflow-hidden rounded-xl border border-surface-border bg-surface-raised p-5 sm:p-7">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="min-w-0">
-                    <p id="ci-final-label" class="text-[11px] uppercase tracking-[0.18em] text-cyan-300/60">
+                    <p id="ci-final-label" class="text-[11px] uppercase tracking-[0.18em] text-primary-light/60">
                         Projected final balance · 12 mo
                     </p>
                     <p id="ci-final"
-                        class="text-4xl sm:text-6xl font-black tabular-nums mt-1 bg-clip-text text-transparent break-words"
-                        style="background-image: linear-gradient(135deg, #a5f3fc, #22d3ee, #818cf8);">$93,149</p>
+                        class="text-4xl sm:text-6xl font-black tabular-nums mt-1 text-primary-light break-words">$93,149</p>
 
                     <p id="ci-interest-line" class="text-sm font-bold text-emerald-300 tabular-nums mt-1">
                         +<span id="ci-interest">$88,149</span> interest earned
@@ -134,12 +150,12 @@
                 </div>
             </div>
 
-            <div class="mt-5 pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3 flex-wrap">
-                <div class="inline-flex p-1 rounded-full border border-white/10 bg-black/30" role="group"
+            <div class="mt-5 pt-4 border-t border-surface-border flex items-center justify-between gap-3 flex-wrap">
+                <div class="inline-flex p-1 rounded-lg border border-surface-border bg-surface-overlay" role="group"
                     aria-label="Return period">
                     <button type="button" data-period="month" aria-pressed="true"
                         class="px-4 py-1.5 rounded-full text-[12px] font-bold transition text-white/55 hover:text-white"
-                        style="background: linear-gradient(90deg, #22d3ee, #818cf8); color: #06121a;">Per month</button>
+                        style="background: {{ $themeColors->primary_color ?? '#059669' }}; color: #fff;">Per month</button>
                     <button type="button" data-period="year" aria-pressed="false"
                         class="px-4 py-1.5 rounded-full text-[12px] font-bold transition text-white/55 hover:text-white">Per
                         year</button>
@@ -154,7 +170,7 @@
         </div>
 
         {{-- Inputs --}}
-        <div class="rounded-3xl border border-white/[0.08] bg-[#0a0e16] p-5 sm:p-6">
+        <div class="rounded-xl border border-surface-border bg-surface-raised p-5 sm:p-6">
             <div class="flex items-center gap-2 mb-4">
                 <x-icon name="calculator" class="w-4 h-4 text-cyan-300" />
                 <h3 class="text-sm font-bold text-white">Your scenario</h3>
@@ -162,7 +178,7 @@
             </div>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3.5 min-w-0 focus-within:border-cyan-400/40 transition-colors">
+                <div class="rounded-lg border border-surface-border bg-surface-overlay p-3.5 min-w-0 focus-within:border-primary transition-colors">
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight min-h-[1.6em]">
                         Starting amount
                     </p>
@@ -175,7 +191,7 @@
                     <p class="text-[10px] text-white/30 mt-1 truncate">What you invest today</p>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3.5 min-w-0 focus-within:border-cyan-400/40 transition-colors">
+                <div class="rounded-lg border border-surface-border bg-surface-overlay p-3.5 min-w-0 focus-within:border-primary transition-colors">
                     <p id="ci-rate-label"
                         class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight min-h-[1.6em]">
                         Monthly return
@@ -189,7 +205,7 @@
                     <p class="text-[10px] text-white/30 mt-1 truncate">Goldrock avg ≈ 15.4%/mo</p>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3.5 min-w-0 focus-within:border-cyan-400/40 transition-colors">
+                <div class="rounded-lg border border-surface-border bg-surface-overlay p-3.5 min-w-0 focus-within:border-primary transition-colors">
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight min-h-[1.6em]">
                         Time horizon
                     </p>
@@ -215,7 +231,7 @@
                     <p class="text-[10px] text-white/30 mt-1 truncate">How long it runs</p>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3.5 min-w-0 focus-within:border-cyan-400/40 transition-colors">
+                <div class="rounded-lg border border-surface-border bg-surface-overlay p-3.5 min-w-0 focus-within:border-primary transition-colors">
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight min-h-[1.6em]">
                         Adding each month
                     </p>
@@ -229,7 +245,7 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 flex-wrap mt-4 pt-4 border-t border-white/[0.06]">
+            <div class="flex gap-2 flex-wrap mt-4 pt-4 border-t border-surface-border">
                 <span class="text-[11px] text-white/35 self-center mr-1">Quick start:</span>
                 <button type="button" data-quick="500" aria-pressed="false"
                     class="px-3 py-1 rounded-full text-[11px] font-semibold border text-white/55 border-white/10 hover:border-white/25 transition-colors">$500</button>
@@ -245,7 +261,7 @@
         </div>
 
         {{-- Withdrawal settings --}}
-        <div class="rounded-3xl border border-white/[0.08] bg-[#0a0e16] p-5 sm:p-6">
+        <div class="rounded-xl border border-surface-border bg-surface-raised p-5 sm:p-6">
             <div class="flex items-center gap-2 mb-1">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -282,19 +298,19 @@
 
             <div id="ci-withdraw-results" class="hidden mt-5 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3 min-w-0">
+                    <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-0">
                         <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight">
                             Cash to you
                         </p>
                         <p id="ci-cash-to-you" class="text-lg font-black tabular-nums mt-1 text-emerald-300 break-words">$0</p>
                     </div>
-                    <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3 min-w-0">
+                    <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-0">
                         <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight">
                             Still invested
                         </p>
                         <p id="ci-still-invested" class="text-lg font-black tabular-nums mt-1 text-white break-words">$0</p>
                     </div>
-                    <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3 min-w-0">
+                    <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-0">
                         <p id="ci-fee-label"
                             class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight">
                             Fee on withdrawals (30%)
@@ -302,7 +318,7 @@
                         <p id="ci-fee-on-withdrawals"
                             class="text-lg font-black tabular-nums mt-1 text-rose-300 break-words">$0</p>
                     </div>
-                    <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3 min-w-0">
+                    <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-0">
                         <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold leading-tight">
                             If you'd kept it all in
                         </p>
@@ -310,7 +326,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/[0.09] bg-white/[0.02] p-3 min-w-[160px]">
+                <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-[160px]">
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold">Performance fee</p>
                     <div class="flex items-baseline gap-1 mt-1">
                         <input id="ci-fee" type="text" inputmode="decimal" value="30" aria-label="Performance fee"
@@ -325,7 +341,7 @@
         </div>
 
         {{-- Chart --}}
-        <div class="rounded-3xl border border-white/[0.08] bg-[#0a0e16] p-4 sm:p-6">
+        <div class="rounded-xl border border-surface-border bg-surface-raised p-4 sm:p-6">
             <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
                 <div class="flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
@@ -358,8 +374,7 @@
                 <div id="ci-chart-tooltip" class="ci-chart-tooltip"></div>
             </div>
 
-            <div id="ci-simple-note" class="mt-4 rounded-2xl border border-cyan-400/20 px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
-                style="background: linear-gradient(90deg, rgba(34,211,238,0.10), rgba(129,140,248,0.06));">
+        <div id="ci-simple-note" class="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
                 <p class="text-[13px] text-white/85">
                     <span class="font-bold text-cyan-300">Compounding adds <span id="ci-compound-adds">$71,589</span></span>
                     vs flat simple interest at the same rate.
@@ -369,7 +384,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="rounded-3xl border border-white/[0.08] bg-[#0a0e16] overflow-hidden">
+        <div class="rounded-xl border border-surface-border bg-surface-raised overflow-hidden">
             <div class="flex items-center justify-between gap-2 px-5 pt-5 flex-wrap">
                 <div>
                     <h3 class="text-base font-bold text-white">Month-by-month projection</h3>
@@ -389,7 +404,7 @@
 
         {{-- Explanatory cards --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
+            <div class="rounded-lg border border-surface-border bg-surface-overlay p-4">
                 <div class="flex items-center gap-2 mb-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -407,7 +422,7 @@
                 </p>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
+            <div class="rounded-lg border border-surface-border bg-surface-overlay p-4">
                 <div class="flex items-center gap-2 mb-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -423,7 +438,7 @@
                 </p>
             </div>
 
-            <div class="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
+            <div class="rounded-lg border border-surface-border bg-surface-overlay p-4">
                 <div class="flex items-center gap-2 mb-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -440,8 +455,7 @@
         </div>
 
         {{-- CTA --}}
-        <div class="rounded-3xl border border-cyan-400/20 p-6 text-center"
-            style="background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(129,140,248,0.07));">
+        <div class="rounded-xl border border-primary/20 bg-surface-raised p-6 text-center">
             <p class="text-base font-bold text-white flex items-center justify-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -451,12 +465,12 @@
                 Ready to put compounding to work?
             </p>
             <p class="text-[13px] text-white/55 mt-1.5">
-                {{ env('APP_NAME') }} has averaged ≈ 15.4% / month. Invest and let it reinvest for you.
+                Build a scenario and submit an investment request for administrator review.
             </p>
-            <a href="{{ route('copyTrading') }}"
-                class="mt-4 h-11 px-7 rounded-full font-bold text-[#06121a] inline-flex items-center gap-2"
-                style="background: linear-gradient(90deg, #22d3ee, #818cf8);">
-                Invest Now →
+            <a href="{{ route('compound-investments.create') }}"
+                class="mt-4 h-11 px-7 rounded-lg font-bold text-white inline-flex items-center gap-2"
+                style="background: {{ $themeColors->primary_color ?? '#059669' }};">
+                Start Compounding
             </a>
         </div>
 

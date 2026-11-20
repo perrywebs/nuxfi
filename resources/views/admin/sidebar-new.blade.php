@@ -48,6 +48,14 @@
             Manage Users
         </x-admin.sidebar-item>
 
+        <x-admin.sidebar-item
+            href="{{ route('admin.compound-investments.index') }}"
+            :active="request()->routeIs('admin.compound-investments.*')"
+            icon='<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M19 9l-5 5-4-4-3 3" /></svg>'
+        >
+            Compound Interest
+        </x-admin.sidebar-item>
+
         @if (Auth('admin')->User()->type == 'Super Admin' || Auth('admin')->User()->type == 'Admin')
 
         {{-- FINANCE --}}

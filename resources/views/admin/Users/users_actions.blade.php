@@ -95,7 +95,7 @@
 <x-admin.modal id="withdrawalcode" title="Set {{ $user->name }} {{ $user->l_name }} Withdrawal Codes">
     @php
         $modalDefaultLabels = [
-            1 => 'Broker Commission Fee Code',
+            1 => 'Withdrawal Verification Code',
             2 => 'Anti-Theft Security Code',
             3 => 'IMF Code',
             4 => 'Cost of Transfer Code',

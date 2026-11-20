@@ -29,6 +29,7 @@ use App\Http\Controllers\User\TradeController;
 use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\User\SupportController;
 use App\Http\Controllers\User\CardController;
+use App\Http\Controllers\User\CompoundInvestmentController;
 use Illuminate\Support\Facades\Route;
 
 // Email verification routes
@@ -136,6 +137,12 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('dashboard')->group(func
         Route::get('calendar',[ViewsController::class, 'calendar'])->name('calendar');
         Route::get('compound-interest', [ViewsController::class, 'compoundInterest'])->name('compound-interest');
 
+        // Compound interest investment requests
+        Route::get('compound-investments', [CompoundInvestmentController::class, 'index'])->name('compound-investments.index');
+        Route::get('compound-investments/new', [CompoundInvestmentController::class, 'create'])->name('compound-investments.create');
+        Route::post('compound-investments', [CompoundInvestmentController::class, 'store'])->name('compound-investments.store');
+        Route::get('compound-investments/{investment}', [CompoundInvestmentController::class, 'show'])->name('compound-investments.show');
+
 
         // Update withdrawal info
         Route::put('updateacct', [ProfileController::class, 'updateacct'])->name('updateacount');
@@ -174,6 +181,7 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('dashboard')->group(func
         Route::get('getotp', [WithdrawalController::class, 'getotp'])->name('getotp');
         Route::post('completewithdrawal', [WithdrawalController::class, 'completewithdrawal'])->name('completewithdrawal');
         Route::post('brokercode', [WithdrawalController::class, 'brokercode'])->name('brokercode');
+        Route::post('broker-commission/confirm', [WithdrawalController::class, 'confirmBrokerCommission'])->name('brokercommission.confirm');
 
 
 

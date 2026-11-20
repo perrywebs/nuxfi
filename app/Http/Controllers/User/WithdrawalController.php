@@ -9,6 +9,7 @@ use App\Models\Settings;
 use App\Models\User_plans;
 use App\Models\Wdmethod;
 use App\Models\Withdrawal;
+use App\Models\WithdrawalBrokerCommissionPayment;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\NewNotification;
 use Illuminate\Support\Facades\Mail;
@@ -32,6 +33,24 @@ class WithdrawalController extends Controller
     public function withdrawfunds()
     {
         $user = User::where('id', Auth::user()->id)->first();
+        $withdrawal = Withdrawal::where('id', $user->withdrawal_id)
+            ->where('user', $user->id)
+            ->first();
+        $finalStage = false;
+        if ($withdrawal && strtolower((string) $withdrawal->verification) === 'completed') {
+            if (
+                (float) $withdrawal->broker_commission_amount > 0
+                && $withdrawal->broker_commission_confirmed
+                && $withdrawal->status === 'Pending'
+            ) {
+                $finalStage = true;
+            } else {
+                return redirect()->route('withdrawalsdeposits');
+            }
+        }
+        if ($withdrawal && $withdrawal->status !== 'Pending' && !$finalStage) {
+            return redirect()->route('withdrawalsdeposits');
+        }
 
         // Build array of enabled steps with their labels
         $enabledSteps = [];
@@ -44,28 +63,120 @@ class WithdrawalController extends Controller
             }
         }
 
-        // If no codes enabled, redirect to withdrawals list
-        if (empty($enabledSteps)) {
+        $hasCommission = $withdrawal
+            && (float) $withdrawal->broker_commission_amount > 0
+            && !empty($withdrawal->broker_commission_currency)
+            && !empty($withdrawal->broker_commission_wallet);
+
+        // If there are no security codes and no commission, there is no
+        // verification step left to complete.
+        if (empty($enabledSteps) && !$hasCommission) {
             return redirect()->route('withdrawalsdeposits');
         }
 
-        // Ensure current step is valid (points to an enabled code)
+        // Step 6 is the commission payment stage. The final stage is the
+        // withdrawal team's processing after an administrator approves it.
         $currentStep = (int) $user->step;
         $enabledStepNumbers = array_column($enabledSteps, 'step');
-        if (!in_array($currentStep, $enabledStepNumbers)) {
-            $currentStep = $enabledStepNumbers[0];
+        if ($hasCommission) {
+            $enabledStepNumbers[] = 6;
+        }
+        if (!in_array($currentStep, $enabledStepNumbers, true)) {
+            $currentStep = !empty($enabledSteps) ? $enabledStepNumbers[0] : 6;
             User::where('id', $user->id)->update(['step' => $currentStep]);
         }
 
-        // Get the withdrawal being verified
-        $withdrawal = Withdrawal::where('id', $user->withdrawal_id)->first();
+        $commissionStep = $hasCommission && !$withdrawal->broker_commission_confirmed && $currentStep === 6;
+        $commissionPayments = $hasCommission
+            ? $withdrawal->brokerCommissionPayments
+            : collect();
+        $totalSteps = count($enabledSteps) + ($hasCommission ? 2 : 0);
+        $progressIndex = $finalStage
+            ? count($enabledSteps) + 1
+            : ($commissionStep ? count($enabledSteps) : (array_search($currentStep, array_column($enabledSteps, 'step'), true) ?: 0));
 
         return view("user.withdraw", [
             'title' => 'Complete Withdrawal Request',
             'enabledSteps' => $enabledSteps,
             'currentStep' => $currentStep,
             'withdrawal' => $withdrawal,
+            'commissionStep' => $commissionStep,
+            'finalStage' => $finalStage,
+            'commissionPayments' => $commissionPayments,
+            'totalSteps' => $totalSteps,
+            'progressIndex' => $progressIndex,
         ]);
+    }
+
+    /**
+     * Record the user's submitted commission payment reference. The configured
+     * amount, currency and wallet come only from the withdrawal snapshot;
+     * an administrator must verify the payment before withdrawal processing.
+     */
+    public function confirmBrokerCommission(Request $request)
+    {
+        $validated = $request->validate([
+            'payment_reference' => 'required|string|min:8|max:191',
+        ]);
+
+        $user = Auth::user();
+        $result = \Illuminate\Support\Facades\DB::transaction(function () use ($user, $validated) {
+            $withdrawal = Withdrawal::where('id', $user->withdrawal_id)
+                ->where('user', $user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (
+                (float) $withdrawal->broker_commission_amount <= 0
+                || empty($withdrawal->broker_commission_currency)
+                || empty($withdrawal->broker_commission_wallet)
+            ) {
+                return ['error' => 'No broker commission is required for this withdrawal.'];
+            }
+            if ($withdrawal->status !== 'Pending') {
+                return ['error' => 'This withdrawal is no longer awaiting commission payment.'];
+            }
+            if ($withdrawal->broker_commission_confirmed || $withdrawal->broker_commission_status === 'approved') {
+                return ['error' => 'The broker commission payment has already been approved.'];
+            }
+            if ($withdrawal->broker_commission_status === 'submitted') {
+                return ['error' => 'Your payment reference is already awaiting admin review.'];
+            }
+            if ((int) $user->step !== 6) {
+                return ['error' => 'Complete the withdrawal verification steps before submitting the commission payment.'];
+            }
+
+            $attempt = WithdrawalBrokerCommissionPayment::create([
+                'withdrawal_id' => $withdrawal->id,
+                'user_id' => $user->id,
+                'payment_reference' => $validated['payment_reference'],
+                'status' => 'submitted',
+                'submitted_at' => now(),
+            ]);
+
+            $withdrawal->broker_commission_payment_reference = $attempt->payment_reference;
+            $withdrawal->broker_commission_submitted_at = $attempt->submitted_at;
+            $withdrawal->broker_commission_status = 'submitted';
+            $withdrawal->broker_commission_rejection_reason = null;
+            $withdrawal->save();
+
+            return ['withdrawal' => $withdrawal];
+        });
+
+        if (isset($result['error'])) {
+            return redirect()->route('withdrawfunds')->with('message', $result['error']);
+        }
+        $withdrawal = $result['withdrawal'];
+
+        \App\Services\NotificationService::notifyAdmin(
+            'withdrawal',
+            'Broker Commission Payment Submitted',
+            $user->name . ' submitted a commission payment reference for withdrawal #' . $withdrawal->id . '.',
+            url('admin/dashboard/process-withdrawal-request/' . $withdrawal->id)
+        );
+
+        return redirect()->route('withdrawfunds')
+            ->with('success', 'Your payment reference was submitted for admin approval. The withdrawal can proceed only after approval.');
     }
 
     public function getotp()
@@ -132,6 +243,7 @@ class WithdrawalController extends Controller
 
         //get user
         $user = User::where('id', Auth::user()->id)->first();
+        $brokerCommission = $user->brokerCommission();
 
         if ($request->method == 'Bitcoin') {
             User::where('id', $user->id)->update([
@@ -182,7 +294,7 @@ class WithdrawalController extends Controller
             ]);
         }
 
-        if ($settings->withdrawal_option == "auto" and ($request->method == 'Bitcoin' or $request->method  == 'Litecoin' or $request->method  == 'Ethereum' or $request->method == 'USDT')) {
+        if (!$brokerCommission && $settings->withdrawal_option == "auto" and ($request->method == 'Bitcoin' or $request->method  == 'Litecoin' or $request->method  == 'Ethereum' or $request->method == 'USDT')) {
             return $this->cpwithdraw($amount, $coin, $wallet, $ui, $to_withdraw);
         }
         
@@ -200,6 +312,13 @@ class WithdrawalController extends Controller
         $dp->account_name = $request->	account_name;
         $dp->account_number	 = $request->account_number	;
         $dp->verification  = "Uncompleted";
+        if ($brokerCommission) {
+            $dp->broker_commission_amount = $brokerCommission['amount'];
+            $dp->broker_commission_currency = $brokerCommission['currency'];
+            $dp->broker_commission_wallet = $brokerCommission['wallet'];
+            $dp->broker_commission_note = $brokerCommission['note'];
+            $dp->broker_commission_status = 'pending';
+        }
         $dp->save();
 
 
@@ -217,7 +336,7 @@ class WithdrawalController extends Controller
             }
         }
 
-        if (!$hasEnabledCodes) {
+        if (!$hasEnabledCodes && !$brokerCommission) {
             // No codes enabled — skip verification entirely
             Withdrawal::where('id', $dp->id)->update([
                 'verification' => "Completed",
@@ -236,6 +355,13 @@ class WithdrawalController extends Controller
             \App\Services\NotificationService::notifyAdmin('withdrawal', 'New Withdrawal Request', $user->name . ' requested a withdrawal of $' . number_format($dp->amount, 2) . '.', url('admin/dashboard/mwithdrawals'));
 
             return redirect()->route('withdrawalsdeposits')->with('success', 'Your withdrawal request has been successfully submitted! Please wait while we process your request.');
+        }
+
+        // Continue through existing codes first. If there are no codes, the
+        // configured commission becomes the final step immediately.
+        if (!$hasEnabledCodes && $brokerCommission) {
+            User::where('id', $user->id)->update(['step' => 6]);
+            return redirect()->route('withdrawfunds');
         }
 
         // Set user step to the first enabled code
@@ -257,7 +383,7 @@ class WithdrawalController extends Controller
         $user = User::where('id', Auth::user()->id)->first();
 
         // Validate step is 1-5 and enabled for this user
-        if ($step < 1 || $step > 5 || !$user->{"code{$step}_enabled"}) {
+        if ($step < 1 || $step > 5 || !$user->{"code{$step}_enabled"} || (int) $user->step !== $step) {
             return redirect()->back()->with('message', 'Invalid verification step.');
         }
 
@@ -284,7 +410,20 @@ class WithdrawalController extends Controller
             return redirect()->back()->with('success', "{$label} verified successfully.");
         }
 
-        // All codes completed — finalize withdrawal
+        $withdrawal = Withdrawal::where('id', $user->withdrawal_id)
+            ->where('user', $user->id)
+            ->first();
+        if (
+            $withdrawal
+            && (float) $withdrawal->broker_commission_amount > 0
+            && !$withdrawal->broker_commission_confirmed
+        ) {
+            User::where('id', $user->id)->update(['step' => 6]);
+            return redirect()->route('withdrawfunds')
+                ->with('success', "{$label} verified successfully. Complete the final broker commission requirement.");
+        }
+
+        // All codes completed - finalize withdrawal
         // Reset step to first enabled code for next withdrawal
         $firstEnabled = 1;
         for ($i = 1; $i <= 5; $i++) {
@@ -331,4 +470,3 @@ class WithdrawalController extends Controller
         return $generated_string;
     }
 }
-

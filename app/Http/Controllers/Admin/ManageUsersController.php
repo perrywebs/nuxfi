@@ -26,6 +26,7 @@ use App\Models\Trade;
 use App\Models\User_Signal_Subscription;
 use App\Models\Mt4Details;
 use App\Models\Wallets;
+use App\Models\Wdmethod;
 use App\Traits\PingServer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Mail;
@@ -297,8 +298,37 @@ class ManageUsersController extends Controller
             'user' => $user,
             'pl' => Plans::orderByDesc('id')->get(),
             'wallets' => Wallets::where('user', $id)->orderByDesc('id')->get(),
+            'commissionCurrencies' => $this->commissionCurrencies(),
             'title' => "Manage $user->name",
         ]);
+    }
+
+    private function commissionCurrencies()
+    {
+        $currencies = collect([
+            'BTC' => 'BTC',
+            'USDT' => 'USDT',
+            'ETH' => 'ETH',
+            'LTC' => 'LTC',
+            'BUSD' => 'BUSD',
+        ]);
+
+        Wdmethod::where('status', 'enabled')
+            ->whereIn('type', ['withdrawal', 'both'])
+            ->pluck('name')
+            ->each(function ($name) use ($currencies) {
+                $name = trim((string) $name);
+                if ($name !== '' && !in_array(strtolower($name), ['bank transfer', 'credit card', 'paypal', 'stripe'], true)) {
+                    $symbol = [
+                        'bitcoin' => 'BTC',
+                        'ethereum' => 'ETH',
+                        'litecoin' => 'LTC',
+                    ][strtolower($name)] ?? strtoupper($name);
+                    $currencies->put($symbol, $symbol);
+                }
+            });
+
+        return $currencies->sortKeys();
     }
     /**
      * Deactivate a user account.
@@ -690,10 +720,37 @@ class ManageUsersController extends Controller
         return redirect()->back()->with('success', 'Withdrawal Code Updated Successfully!');
     }
 
+    /**
+     * Save the per-user final withdrawal commission settings.
+     */
+    public function brokerCommission(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'broker_commission_enabled' => 'nullable|boolean',
+            'broker_commission_amount' => 'nullable|required_if:broker_commission_enabled,1|numeric|min:0.00000001|max:1000000000000000',
+            'broker_commission_currency' => 'nullable|required_if:broker_commission_enabled,1|string|max:20',
+            'broker_commission_wallet' => 'nullable|required_if:broker_commission_enabled,1|string|max:191',
+            'broker_commission_note' => 'nullable|string|max:255',
+        ]);
+
+        $user = User::findOrFail($validated['user_id']);
+        $user->broker_commission_enabled = $request->boolean('broker_commission_enabled');
+        $user->broker_commission_amount = $validated['broker_commission_amount'] ?? null;
+        $user->broker_commission_currency = isset($validated['broker_commission_currency'])
+            ? strtoupper(trim($validated['broker_commission_currency']))
+            : null;
+        $user->broker_commission_wallet = $validated['broker_commission_wallet'] ?? null;
+        $user->broker_commission_note = $validated['broker_commission_note'] ?? null;
+        $user->save();
+
+        return redirect()->back()->with('success', 'Broker withdrawal commission settings updated.');
+    }
+
     private function defaultCodeLabel($step)
     {
         $labels = [
-            1 => 'Broker Commission Fee Code',
+            1 => 'Withdrawal Verification Code',
             2 => 'Anti-Theft Security Code',
             3 => 'IMF Code',
             4 => 'Cost of Transfer Code',

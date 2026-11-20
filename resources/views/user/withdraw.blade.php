@@ -10,13 +10,12 @@
     <x-success-alert />
 
     @php
-        $totalSteps = count($enabledSteps);
-        $currentIndex = 0;
-        foreach ($enabledSteps as $idx => $s) {
-            if ($s['step'] == $currentStep) { $currentIndex = $idx; break; }
-        }
-        $progress = $totalSteps > 0 ? round(($currentIndex / $totalSteps) * 100) : 0;
-        $currentLabel = $enabledSteps[$currentIndex]['label'] ?? 'Verification Code';
+        $totalSteps = $totalSteps ?? (count($enabledSteps) + ($withdrawal && (float) $withdrawal->broker_commission_amount > 0 ? 2 : 0));
+        $currentIndex = $progressIndex ?? 0;
+        $progress = $totalSteps > 0 ? round(($currentIndex / max(1, $totalSteps - 1)) * 100) : 0;
+        $currentLabel = $finalStage
+            ? 'Final Withdrawal Processing'
+            : ($commissionStep ? 'Broker Withdrawal Commission' : ($enabledSteps[$currentIndex]['label'] ?? 'Verification Code'));
     @endphp
 
     <div class="max-w-2xl">
@@ -32,10 +31,139 @@
                         <p class="text-sm font-semibold text-content-primary">@money($withdrawal->amount) via {{ $withdrawal->payment_mode }}</p>
                     </div>
                 </div>
-                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-warning/10 text-warning">Pending Verification</span>
+                @if ($finalStage)
+                    <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-info/10 text-info">Final Processing</span>
+                @elseif ($commissionStep && $withdrawal->broker_commission_status === 'submitted')
+                    <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-warning/10 text-warning">Commission Review</span>
+                @else
+                    <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-warning/10 text-warning">Pending Verification</span>
+                @endif
             </div>
         @endif
 
+        @if ($withdrawal && (float) $withdrawal->broker_commission_amount > 0)
+            <div class="mb-5 rounded-lg border border-surface-border bg-surface-raised p-4">
+                <p class="text-xs font-medium text-content-tertiary">Withdrawal stages</p>
+                <p class="mt-1 text-sm font-semibold text-content-primary">
+                    Existing verification requirements
+                    <span class="text-content-tertiary">→</span> Broker Withdrawal Commission
+                    <span class="text-content-tertiary">→</span> Final withdrawal processing
+                </p>
+                <p class="mt-1 text-xs text-content-tertiary">Stage {{ min($progressIndex + 1, $totalSteps) }} of {{ $totalSteps }}</p>
+                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-overlay">
+                    <div class="h-full rounded-full bg-primary" style="width: {{ $progress }}%"></div>
+                </div>
+            </div>
+        @endif
+
+        @if ($finalStage)
+            <div class="bg-surface-raised border border-gain/30 rounded-xl p-5 sm:p-6">
+                <div class="flex items-start gap-3">
+                    <div class="rounded-lg bg-gain/10 p-2 text-gain">✓</div>
+                    <div>
+                        <h3 class="text-base font-semibold text-content-primary">Broker commission approved</h3>
+                        <p class="mt-1 text-sm text-content-secondary">
+                            An administrator approved your payment. Your withdrawal has moved to final processing; no further code or payment is required.
+                        </p>
+                        <p class="mt-3 text-xs text-content-tertiary">
+                            Commission: {{ rtrim(rtrim(number_format($withdrawal->broker_commission_amount, 8, '.', ''), '0'), '.') }} {{ $withdrawal->broker_commission_currency }}
+                            · Approved {{ optional($withdrawal->broker_commission_confirmed_at)->format('M d, Y H:i') }}
+                        </p>
+                        <a href="{{ route('withdrawalsdeposits') }}" class="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-content-inverse">View withdrawal status</a>
+                    </div>
+                </div>
+            </div>
+        @elseif ($commissionStep)
+            <div class="bg-surface-raised border border-surface-border rounded-xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-surface-border bg-warning/5">
+                    <h3 class="text-base font-semibold text-content-primary">Broker Withdrawal Commission</h3>
+                    <p class="mt-1 text-sm text-content-secondary">
+                        This is the second-to-last stage. Send the exact amount below; admin approval is required before final withdrawal processing.
+                    </p>
+                </div>
+                <div class="p-5 sm:p-6 space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-5 items-center">
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-xs text-content-tertiary">Commission amount</p>
+                                <p class="text-2xl font-bold text-content-primary">
+                                    {{ rtrim(rtrim(number_format($withdrawal->broker_commission_amount, 8, '.', ''), '0'), '.') }} {{ $withdrawal->broker_commission_currency }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-content-tertiary mb-1">Receiving wallet address</p>
+                                <div class="flex gap-2">
+                                    <input id="broker-commission-wallet" readonly value="{{ $withdrawal->broker_commission_wallet }}"
+                                        class="min-w-0 flex-1 bg-surface-overlay border border-surface-border rounded-lg px-3 py-2 text-xs sm:text-sm text-content-primary font-mono">
+                                    <button type="button" id="copy-broker-commission"
+                                        class="shrink-0 bg-primary text-content-inverse rounded-lg px-3 py-2 text-sm font-medium">Copy</button>
+                                </div>
+                            </div>
+                            @if ($withdrawal->broker_commission_note)
+                                <p class="text-xs leading-relaxed text-content-secondary">{{ $withdrawal->broker_commission_note }}</p>
+                            @endif
+                        </div>
+                        <img class="mx-auto rounded-lg bg-white p-2 w-36 h-36"
+                            src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;data={{ urlencode($withdrawal->broker_commission_wallet) }}"
+                            alt="QR code for the commission wallet">
+                    </div>
+
+                    @if ($commissionPayments->isNotEmpty())
+                        <div class="rounded-lg border border-surface-border p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-content-tertiary">Payment review history</p>
+                            <div class="mt-3 space-y-3">
+                                @foreach ($commissionPayments as $payment)
+                                    <div class="border-t border-surface-border pt-3 first:border-0 first:pt-0">
+                                        <div class="flex flex-wrap justify-between gap-2">
+                                            <span class="break-all font-mono text-xs text-content-primary">{{ $payment->payment_reference }}</span>
+                                            <span class="text-xs font-semibold {{ $payment->status === 'approved' ? 'text-gain' : ($payment->status === 'rejected' ? 'text-loss' : 'text-warning') }}">{{ ucfirst($payment->status) }}</span>
+                                        </div>
+                                        <p class="mt-1 text-[11px] text-content-tertiary">{{ optional($payment->submitted_at)->format('M d, Y H:i') }}</p>
+                                        @if ($payment->rejection_reason)
+                                            <p class="mt-1 text-xs text-loss">{{ $payment->rejection_reason }}</p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($withdrawal->broker_commission_status === 'submitted')
+                        <div class="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                            <p class="font-semibold text-content-primary">Payment reference submitted</p>
+                            <p class="mt-1 text-sm text-content-secondary break-all">{{ $withdrawal->broker_commission_payment_reference }}</p>
+                            <p class="mt-2 text-xs text-content-tertiary">
+                                Submitted {{ optional($withdrawal->broker_commission_submitted_at)->format('M d, Y H:i') }}. Your withdrawal is waiting for admin approval.
+                            </p>
+                        </div>
+                    @else
+                        @if ($withdrawal->broker_commission_status === 'rejected')
+                            <div class="rounded-lg border border-loss/30 bg-loss/10 p-4">
+                                <p class="font-semibold text-content-primary">Payment reference rejected</p>
+                                <p class="mt-1 text-sm text-content-secondary">{{ $withdrawal->broker_commission_rejection_reason }}</p>
+                                <p class="mt-2 text-xs text-content-tertiary">Submit a corrected transaction reference after checking the payment details.</p>
+                            </div>
+                        @endif
+                        <div class="rounded-lg border border-info/20 bg-info/10 p-4 text-sm text-content-secondary">
+                            Confirm the payment only after it has been sent. Include the transaction hash or payment reference so an administrator can review it. Do not send funds to a different address or network.
+                        </div>
+                        <form action="{{ route('brokercommission.confirm') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <div>
+                                <label for="payment_reference" class="block text-xs font-medium text-content-tertiary mb-2">Transaction hash / payment reference</label>
+                                <input id="payment_reference" name="payment_reference" required minlength="8" maxlength="191"
+                                    value="{{ old('payment_reference') }}" autocomplete="off"
+                                    class="w-full bg-surface-overlay border border-surface-border rounded-lg px-3.5 py-3 text-sm text-content-primary focus:outline-none focus:ring-2 focus:ring-primary">
+                                @error('payment_reference')<p class="mt-1 text-xs text-loss">{{ $message }}</p>@enderror
+                            </div>
+                            <button type="submit" class="w-full bg-primary hover:bg-primary-dark text-content-inverse rounded-lg py-3 text-sm font-semibold">
+                                Submit payment for admin approval
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @else
         {{-- Step Progress --}}
         <div class="mb-6">
             <div class="flex items-center gap-2 mb-3">
@@ -67,7 +195,6 @@
                 <p class="text-xs font-medium text-primary">{{ $progress }}% complete</p>
             </div>
         </div>
-
         {{-- Verification Card --}}
         <div class="bg-surface-raised border border-surface-border rounded-xl overflow-hidden">
             {{-- Card Header --}}
@@ -147,6 +274,25 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
+    @if ($commissionStep)
+        <script>
+            (function () {
+                var button = document.getElementById('copy-broker-commission');
+                var field = document.getElementById('broker-commission-wallet');
+                if (!button || !field) return;
+                button.addEventListener('click', function () {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(field.value).then(function () { button.textContent = 'Copied'; });
+                        return;
+                    }
+                    field.select();
+                    document.execCommand('copy');
+                    button.textContent = 'Copied';
+                });
+            })();
+        </script>
+    @endif
 
 @endsection

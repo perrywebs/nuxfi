@@ -79,6 +79,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'account' => 'array', // Automatically convert JSON to array when retrieving
         'signal_strength_enabled' => 'boolean',
         'dashboard_banner_enabled' => 'boolean',
+        'broker_commission_enabled' => 'boolean',
+        'broker_commission_amount' => 'float',
     ];
 
     /**
@@ -213,6 +215,37 @@ public function copiedExperts()
     public function getAvailableBalAttribute(): float
     {
         return round($this->account_bal - $this->frozen_bal, 2);
+    }
+
+    /**
+     * Broker withdrawal commission configured by an administrator.
+     *
+     * Returns null unless every required field is present, so the withdrawal
+     * flow can safely skip an incomplete configuration instead of showing an
+     * unusable step.
+     */
+    public function brokerCommission(): ?array
+    {
+        if (
+            !$this->broker_commission_enabled
+            || (float) $this->broker_commission_amount <= 0
+            || empty($this->broker_commission_wallet)
+            || empty($this->broker_commission_currency)
+        ) {
+            return null;
+        }
+
+        return [
+            'amount' => round((float) $this->broker_commission_amount, 8),
+            'currency' => $this->broker_commission_currency,
+            'wallet' => $this->broker_commission_wallet,
+            'note' => $this->broker_commission_note,
+        ];
+    }
+
+    public function compoundInvestments()
+    {
+        return $this->hasMany(CompoundInvestment::class, 'user');
     }
 
     public function loans()

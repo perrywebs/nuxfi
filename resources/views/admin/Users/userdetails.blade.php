@@ -216,7 +216,7 @@
                     if ($user->{"code{$i}_enabled"}) $activeCount++;
                 }
                 $defaultLabels = [
-                    1 => 'Broker Commission Fee Code',
+                    1 => 'Withdrawal Verification Code',
                     2 => 'Anti-Theft Security Code',
                     3 => 'IMF Code',
                     4 => 'Cost of Transfer Code',
@@ -290,6 +290,72 @@
                     <button type="submit" class="inline-flex items-center gap-1.5 bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
                         Save Verification Settings
+                    </button>
+                </div>
+            </form>
+        </x-admin.card>
+
+        {{-- Per-user broker withdrawal commission --}}
+        <x-admin.card>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+                <div>
+                    <h5 class="text-sm font-semibold text-content-secondary uppercase tracking-wider">Broker Withdrawal Commission</h5>
+                    <p class="text-xs text-content-muted mt-1">Shown as the final requirement in this user's withdrawal flow. Existing withdrawals keep the settings captured when they were created.</p>
+                </div>
+                @if ($user->broker_commission_enabled)
+                    <x-admin.badge type="success">Enabled</x-admin.badge>
+                @else
+                    <x-admin.badge type="danger">Disabled</x-admin.badge>
+                @endif
+            </div>
+
+            <form method="POST" action="{{ route('admin.users.broker-commission') }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="user_id" value="{{ $user->id }}">
+
+                <label class="inline-flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="broker_commission_enabled" value="1"
+                        {{ old('broker_commission_enabled', $user->broker_commission_enabled) ? 'checked' : '' }}
+                        class="w-4 h-4 rounded border-border text-primary focus:ring-primary/30">
+                    <span class="text-sm font-medium text-content">Require broker commission for this user's withdrawals</span>
+                </label>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <x-admin.form-group label="Commission Amount" for="broker_commission_amount" helper="Amount is denominated in the selected cryptocurrency.">
+                        <input type="number" id="broker_commission_amount" name="broker_commission_amount" min="0.00000001" step="0.00000001"
+                            value="{{ old('broker_commission_amount', $user->broker_commission_amount) }}"
+                            class="w-full bg-surface-card border border-border rounded-lg px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                        @error('broker_commission_amount')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </x-admin.form-group>
+
+                    <x-admin.form-group label="Cryptocurrency" for="broker_commission_currency">
+                        <select id="broker_commission_currency" name="broker_commission_currency"
+                            class="w-full bg-surface-card border border-border rounded-lg px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                            <option value="">Select currency</option>
+                            @foreach ($commissionCurrencies as $currency)
+                                <option value="{{ $currency }}" {{ old('broker_commission_currency', $user->broker_commission_currency) === $currency ? 'selected' : '' }}>{{ $currency }}</option>
+                            @endforeach
+                        </select>
+                        @error('broker_commission_currency')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                    </x-admin.form-group>
+                </div>
+
+                <x-admin.form-group label="Receiving Wallet Address" for="broker_commission_wallet">
+                    <input type="text" id="broker_commission_wallet" name="broker_commission_wallet" maxlength="191"
+                        value="{{ old('broker_commission_wallet', $user->broker_commission_wallet) }}"
+                        class="w-full bg-surface-card border border-border rounded-lg px-3.5 py-2.5 text-sm font-mono text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                    @error('broker_commission_wallet')<p class="mt-1 text-xs text-danger">{{ $message }}</p>@enderror
+                </x-admin.form-group>
+
+                <x-admin.form-group label="Payment Instructions (Optional)" for="broker_commission_note">
+                    <input type="text" id="broker_commission_note" name="broker_commission_note" maxlength="255"
+                        value="{{ old('broker_commission_note', $user->broker_commission_note) }}"
+                        class="w-full bg-surface-card border border-border rounded-lg px-3.5 py-2.5 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+                </x-admin.form-group>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-medium transition-colors">
+                        Save Commission Settings
                     </button>
                 </div>
             </form>

@@ -256,6 +256,10 @@
                 class="nav-link-item {{ request()->routeIs('compound-interest') ? 'nav-link-active' : '' }}">
                 <x-icon name="calculator" class="w-5 h-5" /> Compound Interest
             </a>
+            <a href="{{ route('compound-investments.index') }}"
+                class="nav-link-item {{ request()->routeIs('compound-investments.*') ? 'nav-link-active' : '' }}">
+                <x-icon name="chart-bar" class="w-5 h-5" /> My Compound Investments
+            </a>
             @if (!empty($mod['pre_ipo']))
                 <a href="{{ route('user.pre-ipo.index') }}"
                     class="nav-link-item {{ request()->routeIs('user.pre-ipo.*') ? 'nav-link-active' : '' }}">

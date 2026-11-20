@@ -722,8 +722,8 @@
             periodButtons.forEach(function (button) {
                 var active = button.dataset.period === result.period;
                 button.setAttribute('aria-pressed', active ? 'true' : 'false');
-                button.style.background = active ? 'linear-gradient(90deg, #22d3ee, #818cf8)' : '';
-                button.style.color = active ? '#06121a' : '';
+                button.style.background = active ? 'var(--ci-primary)' : '';
+                button.style.color = active ? '#fff' : '';
             });
 
             takeButtons.forEach(function (button) {

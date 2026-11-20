@@ -43,6 +43,7 @@ use App\Http\Controllers\Admin\AdminSupportController;
 use App\Http\Controllers\Admin\CardController;
 use App\Http\Controllers\Admin\Settings\ThemeColorController;
 use App\Http\Controllers\Admin\Settings\ExchangeRateController;
+use App\Http\Controllers\Admin\CompoundInterestController;
 use Illuminate\Support\Facades\Route;
 
 // Admin Login Routes validate_admin
@@ -128,6 +129,7 @@ Route::middleware(['isadmin', '2fa'])->prefix('admin')->group(function () {
         Route::post('dashboard/AddHistory', 'addHistory')->name('addhistory');
         Route::post('dashboard/edituser', 'edituser')->name('edituser');
         Route::post('dashboard/withdrawalcode', 'withdrawalcode')->name('withdrawalcode');
+        Route::post('dashboard/broker-commission', 'brokerCommission')->name('admin.users.broker-commission');
         Route::post('dashboard/winRate', 'winRate')->name('winRate');
         Route::post('dashboard/signalStrength', 'signalStrength')->name('signalStrength');
         Route::post('dashboard/tradeSignal', 'tradeSignal')->name('tradeSignal');
@@ -167,9 +169,23 @@ Route::middleware(['isadmin', '2fa'])->prefix('admin')->group(function () {
 
     Route::controller(ManageWithdrawalController::class)->group(function () {
         Route::post('dashboard/pwithdrawal', 'pwithdrawal')->name('pwithdrawal');
+        Route::post('dashboard/withdrawals/{id}/verify-broker-commission', 'verifyBrokerCommission')->name('admin.withdrawals.verify-broker-commission');
+        Route::post('dashboard/withdrawals/{id}/reject-broker-commission', 'rejectBrokerCommission')->name('admin.withdrawals.reject-broker-commission');
         Route::get('dashboard/process-withdrawal-request/{id}', 'processwithdraw')->name('processwithdraw');
         Route::get('dashboard/withdrawals/{id}/edit', 'edit')->name('admin.withdrawals.edit');
         Route::post('dashboard/withdrawals/{id}/update', 'editWithdrawal')->name('admin.withdrawals.update');
+    });
+
+    Route::prefix('compound-investments')->name('admin.compound-investments.')->controller(CompoundInterestController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{id}', 'show')->name('show');
+        Route::post('/{id}/approve', 'approve')->name('approve');
+        Route::post('/{id}/reject', 'reject')->name('reject');
+        Route::post('/{id}/activate', 'activate')->name('activate');
+        Route::post('/{id}/credit-interest', 'creditInterest')->name('credit-interest');
+        Route::post('/{id}/complete', 'complete')->name('complete');
+        Route::post('/{id}/reopen', 'reopen')->name('reopen');
+        Route::post('/{id}/reopen-setting', 'updateReopenAllowed')->name('reopen-setting');
     });
 
     Route::controller(PaymentController::class)->group(function () {
