@@ -56,7 +56,7 @@
                 </label>
                 <label class="block">
                     <span id="ci-rate-label" class="text-xs font-medium text-content-tertiary">Monthly return (%)</span>
-                    <input id="ci-rate" name="period_return_rate" type="number" min="0.1" max="100" step="0.01" required value="<?php echo e(old('period_return_rate', $prefill['rate'])); ?>"
+                    <input id="ci-rate" name="period_return_rate" readonly type="number" min="0.1" max="100" step="0.01" required value="<?php echo e(old('period_return_rate', $prefill['rate'])); ?>"
                         class="mt-1 w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2.5 text-sm text-content-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                 </label>
                 <div class="grid grid-cols-[1fr_1fr] gap-2">
@@ -76,7 +76,7 @@
                 </div>
                 <label class="block">
                     <span id="ci-topup-label" class="text-xs font-medium text-content-tertiary">Adding each month (USD)</span>
-                    <input id="ci-topup" name="recurring_topup" type="number" min="0" max="100000000" step="0.01" value="<?php echo e(old('recurring_topup', $prefill['contribution'])); ?>"
+                    <input id="ci-topup" name="recurring_topup" type="number" readonly min="0" max="100000000" step="0.01" value="<?php echo e(old('recurring_topup', $prefill['contribution'])); ?>"
                         class="mt-1 w-full rounded-lg border border-surface-border bg-surface-overlay px-3 py-2.5 text-sm text-content-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                 </label>
             </div>

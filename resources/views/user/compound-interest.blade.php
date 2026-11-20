@@ -199,7 +199,7 @@
                     <div class="flex items-baseline gap-1 mt-1.5">
                         <input id="ci-rate" type="text" inputmode="decimal" value="27.6"
                             aria-label="Return rate"
-                            class="w-full bg-transparent text-2xl font-black tabular-nums text-cyan-300 outline-none transition-colors">
+                            class="w-full bg-transparent text-2xl font-black tabular-nums text-cyan-300 outline-none transition-colors" readonly>
                         <span class="text-white/45 text-sm font-semibold shrink-0">%</span>
                     </div>
                     <p class="text-[10px] text-white/30 mt-1 truncate">Goldrock avg ≈ 15.4%/mo</p>
@@ -329,7 +329,7 @@
                 <div class="rounded-lg border border-surface-border bg-surface-overlay p-3 min-w-[160px]">
                     <p class="text-[10px] uppercase tracking-[0.12em] text-white/45 font-semibold">Performance fee</p>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <input id="ci-fee" type="text" inputmode="decimal" value="30" aria-label="Performance fee"
+                        <input id="ci-fee" type="text" inputmode="decimal" readonly value="30" aria-label="Performance fee"
                             class="w-16 bg-transparent text-xl font-black tabular-nums text-white outline-none">
                         <span class="text-white/45 text-sm font-semibold">%</span>
                     </div>

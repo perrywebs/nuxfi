@@ -220,7 +220,7 @@
                     <div class="flex items-baseline gap-1 mt-1.5">
                         <input id="ci-rate" type="text" inputmode="decimal" value="27.6"
                             aria-label="Return rate"
-                            class="w-full bg-transparent text-2xl font-black tabular-nums text-cyan-300 outline-none transition-colors">
+                            class="w-full bg-transparent text-2xl font-black tabular-nums text-cyan-300 outline-none transition-colors" readonly>
                         <span class="text-white/45 text-sm font-semibold shrink-0">%</span>
                     </div>
                     <p class="text-[10px] text-white/30 mt-1 truncate">Goldrock avg ≈ 15.4%/mo</p>
